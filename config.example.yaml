@@ -1,17 +1,5 @@
-api:
-  port: 3000
-  host: 127.0.0.1
-apiHosts: ["127.0.0.1:3000"]
-gateway:
-  port: 3300
-  host: 127.0.0.1
-angel:
-  templates: conf.d
-  conf: deploy.conf
-  pidFile: dispatch-angel.pid
-  generator: dispatch-angel
 mysql:
-  db: dispatch
+  db: dispatch_user
   host: 127.0.0.1
   port: 3306
   user: root

@@ -30,14 +30,32 @@ import           Data.Yaml.Config                     as Y (load, lookupDefault,
                                                             subconfig)
 import           Options.Applicative
 
-data Options = Options { getConfigFile :: String }
+data Options = Options { getConfigFile  :: String
+                       , getHost        :: String
+                       , getPort        :: Int
+                       , getTablePrefix :: String
+                       }
 
 parser :: Parser Options
 parser = Options <$> strOption (long "config"
                                 <> short 'c'
                                 <> metavar "FILE"
-                                <> help "Dispatch config file."
+                                <> help "User micro server config file."
                                 <> value "config.yaml")
+                 <*> strOption (long "host"
+                                <> short 'H'
+                                <> metavar "HOST"
+                                <> help "User micro server hostname."
+                                <> value "localhost")
+                 <*> option auto (long "port"
+                                <> short 'p'
+                                <> metavar "PORT"
+                                <> help "User micro server port."
+                                <> value 3000)
+                 <*> strOption (long "table_prefix"
+                                <> metavar "TABLE_PREFIX"
+                                <> help "table prefix."
+                                <> value "test")
 
 main :: IO ()
 main = execParser opts >>= program
@@ -50,11 +68,10 @@ main = execParser opts >>= program
 program :: Options -> IO ()
 program opts = do
   yamlConfig <- load $ getConfigFile opts
-  serverConfig <- subconfig "server" yamlConfig
   mysqlConfig <- subconfig "mysql" yamlConfig
-  let serverHost   = Y.lookupDefault "host" "127.0.0.1" serverConfig
-      serverPort   = Y.lookupDefault "port" 3000 serverConfig
-      dbName       = Y.lookupDefault "db" "dispatch" mysqlConfig
+  let serverHost   = getHost opts
+      serverPort   = getPort opts
+      dbName       = Y.lookupDefault "db" "dispatch_user" mysqlConfig
       dbHost       = Y.lookupDefault "host" "127.0.0.1" mysqlConfig
       dbPort       = Y.lookupDefault "port" 3306 mysqlConfig
       dbUser       = Y.lookupDefault "user" "root" mysqlConfig
@@ -63,7 +80,7 @@ program opts = do
       idleTime     = Y.lookupDefault "idleTime" 0.5 mysqlConfig
       maxResources = Y.lookupDefault "maxResources" 1 mysqlConfig
       numThreads   = Y.lookupDefault "numThreads" 1 mysqlConfig
-      tablePrefix  = Y.lookupDefault "tablePrefix" "test" mysqlConfig
+      tablePrefix  = getTablePrefix opts
 
   let conn = connect defaultConnectInfo { connectDatabase = dbName
                                         , connectHost = dbHost
