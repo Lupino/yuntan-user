@@ -11,6 +11,7 @@ module Dispatch.APIHandler
   , removeUserExtraAPIHandler
   , clearUserExtraAPIHandler
   , getUsersAPIHandler
+  , verifyPasswordAPIHandler
 
   , createBindAPIHandler
   , getBindAPIHandler
@@ -36,6 +37,15 @@ createUserAPIHandler = do
   uid <- lift $ createUser name (pack passwd)
 
   json =<< lift (getUser uid)
+
+verifyPasswordAPIHandler :: User -> ActionM ()
+verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
+  valid <- flip isVaildPassword (unpack pwd) <$> param "passwd"
+  if valid then resultOK
+           else status status400 >> errorInvalidPassword
+
+errorInvalidPassword :: ActionM ()
+errorInvalidPassword = json $ object [ "err" .= pack "invalid password" ]
 
 isDigest :: String -> Bool
 isDigest (x:xs) | x `elem` ['0'..'9'] = isDigest xs

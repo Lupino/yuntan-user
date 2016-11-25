@@ -120,6 +120,7 @@ application = do
   post   "/api/users/:uidOrName/extra"       $ requireUser updateUserExtraAPIHandler
   delete "/api/users/:uidOrName/extra"       $ requireUser removeUserExtraAPIHandler
   post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraAPIHandler
+  post   "/api/users/:uidOrName/verify"      $ requireUser verifyPasswordAPIHandler
 
   post   "/api/users/:uidOrName/binds"       $ requireUser createBindAPIHandler
 
