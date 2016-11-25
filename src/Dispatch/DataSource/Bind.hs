@@ -29,7 +29,7 @@ createBind uid service name extra prefix conn = do
   execute conn sql (uid, service, name, encode extra, show $ toEpochTime t)
   fromIntegral <$> insertID conn
 
-  where sql = fromString $ concat [ "INSET INTO `", prefix, "_binds` "
+  where sql = fromString $ concat [ "INSERT INTO `", prefix, "_binds` "
                                   , "(`user_id`, `service`, `name`, `extra`, `created_at`)"
                                   , " VALUES "
                                   , "(?, ?, ?, ?, ?)"

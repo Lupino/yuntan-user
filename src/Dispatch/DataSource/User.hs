@@ -30,7 +30,7 @@ createUser name passwd prefix conn = do
   execute conn sql (name, passwd, show $ toEpochTime t)
   fromIntegral <$> insertID conn
 
-  where sql = fromString $ concat [ "INSET INTO `", prefix, "_users` "
+  where sql = fromString $ concat [ "INSERT INTO `", prefix, "_users` "
                                   , "(`username`, `password`, `created_at`)"
                                   , " VALUES "
                                   , "(?, ?, ?)"
