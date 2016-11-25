@@ -98,6 +98,7 @@ program opts = do
   let opts = def { settings = setPort serverPort
                             $ setHost (Host serverHost) (settings def) }
 
+  _ <- runIO config state createTable
   scottyOptsT opts (runIO config state) application
   where
         runIO :: UserEnv -> StateStore -> DispatchM b -> IO b

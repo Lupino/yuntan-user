@@ -21,6 +21,7 @@ library
                      , Dispatch.DataSource
                      , Dispatch.DataSource.User
                      , Dispatch.DataSource.Bind
+                     , Dispatch.DataSource.Table
                      , Dispatch.API
 
                      , Dispatch.APIHandler

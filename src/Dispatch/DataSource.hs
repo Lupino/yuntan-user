@@ -12,28 +12,30 @@ module Dispatch.DataSource (
     initGlobalState
   ) where
 
-import           Data.Hashable            (Hashable (..))
-import           Data.Typeable            (Typeable)
-import           Haxl.Core                (BlockedFetch (..), DataSource,
-                                           DataSourceName, Flags,
-                                           PerformFetch (..), Show1, State,
-                                           StateKey, StateStore, dataSourceName,
-                                           fetch, putFailure, putSuccess, show1,
-                                           stateEmpty, stateSet)
+import           Data.Hashable             (Hashable (..))
+import           Data.Typeable             (Typeable)
+import           Haxl.Core                 (BlockedFetch (..), DataSource,
+                                            DataSourceName, Flags,
+                                            PerformFetch (..), Show1, State,
+                                            StateKey, StateStore,
+                                            dataSourceName, fetch, putFailure,
+                                            putSuccess, show1, stateEmpty,
+                                            stateSet)
 
 import           Dispatch.DataSource.Bind
+import           Dispatch.DataSource.Table
 import           Dispatch.DataSource.User
 import           Dispatch.Types
-import           Dispatch.UserEnv         (UserEnv (..))
+import           Dispatch.UserEnv          (UserEnv (..))
 
-import qualified Control.Exception        (SomeException, bracket_, try)
-import           Data.Int                 (Int64)
-import           Data.Pool                (Pool, withResource)
-import           Database.MySQL.Simple    (Connection)
+import qualified Control.Exception         (SomeException, bracket_, try)
+import           Data.Int                  (Int64)
+import           Data.Pool                 (Pool, withResource)
+import           Database.MySQL.Simple     (Connection)
 
 import           Control.Concurrent.Async
 import           Control.Concurrent.QSem
-import           Data.Maybe               (fromJust, isJust)
+import           Data.Maybe                (fromJust, isJust)
 
 -- Data source implementation.
 
@@ -57,6 +59,8 @@ data DispatchReq a where
   GetBinds           :: UserID -> DispatchReq [Bind]
   RemoveBinds        :: UserID -> DispatchReq Int64
 
+  CreateTable        :: DispatchReq Int64
+
   deriving (Typeable)
 
 deriving instance Eq (DispatchReq a)
@@ -79,6 +83,8 @@ instance Hashable (DispatchReq a) where
   hashWithSalt s (CountBind uid)          = hashWithSalt s (15::Int, uid)
   hashWithSalt s (GetBinds uid)           = hashWithSalt s (16::Int, uid)
   hashWithSalt s (RemoveBinds uid)        = hashWithSalt s (17::Int, uid)
+
+  hashWithSalt s CreateTable              = hashWithSalt s (20::Int)
 
 deriving instance Show (DispatchReq a)
 instance Show1 DispatchReq where show1 = show
@@ -138,6 +144,8 @@ fetchReq (UpdateBindExtra bid ex)  = updateBindExtra bid ex
 fetchReq (CountBind uid)           = countBind uid
 fetchReq (GetBinds uid)            = getBinds uid
 fetchReq (RemoveBinds uid)         = removeBinds uid
+
+fetchReq CreateTable               = createTable
 
 
 

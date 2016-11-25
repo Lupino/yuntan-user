@@ -18,6 +18,8 @@ module Dispatch.API
   , countBind
   , getBinds
   , removeBinds
+
+  , createTable
   ) where
 
 import           Data.Int            (Int64)
@@ -73,3 +75,6 @@ fillBinds (Just u@(User { getUserID = uid })) = do
   return (Just u { getUserBinds = binds })
 
 fillBinds Nothing = return Nothing
+
+createTable :: DispatchM Int64
+createTable = uncachedRequest CreateTable
