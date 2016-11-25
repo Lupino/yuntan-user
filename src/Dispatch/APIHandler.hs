@@ -26,7 +26,7 @@ import           Web.Scotty.Trans     (body, json, param, rescue, status)
 
 import           Data.Aeson           (Value (..), decode, object, (.=))
 import           Data.Maybe           (fromMaybe)
-import           Data.Text            (pack)
+import           Data.Text            (pack, unpack)
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -37,13 +37,21 @@ createUserAPIHandler = do
 
   json =<< lift (getUser uid)
 
+isDigest :: String -> Bool
+isDigest (x:xs) | x `elem` ['0'..'9'] = isDigest xs
+                | otherwise           = False
+
+isDigest [] = True
+
 apiUser :: ActionM (Maybe User)
 apiUser = do
-  uid <- param "uidOrName" `rescue` (\_ -> return (0 :: UserID))
-  name <- param "uidOrName" `rescue` (\_ -> return ("" :: UserName))
-  case (uid, name) of
-    (0, n)  -> lift (getUserByName n)
-    (u, "") -> lift (getUser u)
+  name <- param "uidOrName"
+  user <- lift $ getUserByName (pack name)
+  case user of
+    Just user -> return $ Just user
+    Nothing -> do
+      if isDigest name then lift (getUser $ read name)
+                       else return Nothing
 
 getUserAPIHandler :: ActionM ()
 getUserAPIHandler = do
