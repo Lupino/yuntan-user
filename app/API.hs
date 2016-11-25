@@ -46,7 +46,7 @@ parser = Options <$> strOption (long "config"
                                 <> short 'H'
                                 <> metavar "HOST"
                                 <> help "User micro server hostname."
-                                <> value "localhost")
+                                <> value "127.0.0.1")
                  <*> option auto (long "port"
                                 <> short 'p'
                                 <> metavar "PORT"
@@ -93,13 +93,13 @@ program opts = do
 
   let state = initGlobalState numThreads
 
-  let config = UserEnv { mySQLPool = pool, tablePrefix = tablePrefix }
+  let userEnv = UserEnv { mySQLPool = pool, tablePrefix = tablePrefix }
 
   let opts = def { settings = setPort serverPort
                             $ setHost (Host serverHost) (settings def) }
 
-  _ <- runIO config state createTable
-  scottyOptsT opts (runIO config state) application
+  _ <- runIO userEnv state createTable
+  scottyOptsT opts (runIO userEnv state) application
   where
         runIO :: UserEnv -> StateStore -> DispatchM b -> IO b
         runIO env s m = do
