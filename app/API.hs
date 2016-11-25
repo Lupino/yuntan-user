@@ -116,7 +116,7 @@ application = do
   delete "/api/users/:uidOrName/"            $ requireUser removeUserAPIHandler
 
   post   "/api/users/:uidOrName/"            $ requireUser updateUserNameAPIHandler
-  post   "/api/users/:uidOrName/password"    $ requireUser updateUserPasswordAPIHandler
+  post   "/api/users/:uidOrName/passwd"      $ requireUser updateUserPasswordAPIHandler
   post   "/api/users/:uidOrName/extra"       $ requireUser updateUserExtraAPIHandler
   delete "/api/users/:uidOrName/extra"       $ requireUser removeUserExtraAPIHandler
   post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraAPIHandler
