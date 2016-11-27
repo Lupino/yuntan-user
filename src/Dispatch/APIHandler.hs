@@ -39,7 +39,7 @@ createUserAPIHandler = do
     (False, False) -> status status400 >> errorInvalidUserName
     (False, True) -> do
 
-      uid <- lift $ createUser name (pack passwd)
+      uid <- lift $ createUser (pack name) (pack passwd)
       json =<< lift (getUser uid)
 
 verifyPasswordAPIHandler :: User -> ActionM ()
@@ -52,10 +52,10 @@ errorInvalidPassword :: ActionM ()
 errorInvalidPassword = json $ object [ "err" .= pack "invalid password" ]
 
 errorInvalidUserName :: ActionM ()
-errorInvalidUserName = json $ object [ "err" .= pack $ "invalid username, the valid username char is " ++ validUserName ]
+errorInvalidUserName = json $ object [ "err" .= pack ("invalid username, the valid username char is " ++ validUserName) ]
 
 errorInvalidUserName' :: ActionM ()
-errorInvalidUserName' = json $ object [ "err" .= pack $ "invalid username, the valid username need one or more char which is not a number." ]
+errorInvalidUserName' = json $ object [ "err" .= pack "invalid username, the valid username need one or more char which is not a number." ]
 
 validUserName :: String
 validUserName = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z'] ++ ['.', '_', '-']
@@ -109,7 +109,7 @@ updateUserNameAPIHandler (User { getUserID = uid }) = do
     (True, _) -> status status400 >> errorInvalidUserName'
     (False, False) -> status status400 >> errorInvalidUserName
     (False, True) -> do
-      lift $ updateUserName uid name
+      lift $ updateUserName uid (pack name)
       resultOK
 
 updateUserPasswordAPIHandler :: User -> ActionM ()
