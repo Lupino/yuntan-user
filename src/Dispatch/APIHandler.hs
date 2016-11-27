@@ -34,9 +34,13 @@ createUserAPIHandler = do
   name <- param "username"
   passwd <- hashPassword <$> param "passwd"
 
-  uid <- lift $ createUser name (pack passwd)
+  case (isDigest name, isValidUserName name) of
+    (True, _) -> status status400 >> errorInvalidUserName'
+    (False, False) -> status status400 >> errorInvalidUserName
+    (False, True) -> do
 
-  json =<< lift (getUser uid)
+      uid <- lift $ createUser name (pack passwd)
+      json =<< lift (getUser uid)
 
 verifyPasswordAPIHandler :: User -> ActionM ()
 verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
@@ -46,6 +50,21 @@ verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
 
 errorInvalidPassword :: ActionM ()
 errorInvalidPassword = json $ object [ "err" .= pack "invalid password" ]
+
+errorInvalidUserName :: ActionM ()
+errorInvalidUserName = json $ object [ "err" .= pack $ "invalid username, the valid username char is " ++ validUserName ]
+
+errorInvalidUserName' :: ActionM ()
+errorInvalidUserName' = json $ object [ "err" .= pack $ "invalid username, the valid username need one or more char which is not a number." ]
+
+validUserName :: String
+validUserName = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z'] ++ ['.', '_', '-']
+
+isValidUserName :: String -> Bool
+isValidUserName (x:xs) | x `elem` validUserName = isValidUserName xs
+                       | otherwise              = False
+
+isValidUserName [] = True
 
 isDigest :: String -> Bool
 isDigest (x:xs) | x `elem` ['0'..'9'] = isDigest xs
@@ -86,8 +105,12 @@ removeUserAPIHandler (User { getUserID = uid }) = do
 updateUserNameAPIHandler :: User -> ActionM ()
 updateUserNameAPIHandler (User { getUserID = uid }) = do
   name <- param "username"
-  lift $ updateUserName uid name
-  resultOK
+  case (isDigest name, isValidUserName name) of
+    (True, _) -> status status400 >> errorInvalidUserName'
+    (False, False) -> status status400 >> errorInvalidUserName
+    (False, True) -> do
+      lift $ updateUserName uid name
+      resultOK
 
 updateUserPasswordAPIHandler :: User -> ActionM ()
 updateUserPasswordAPIHandler (User { getUserID = uid }) = do
