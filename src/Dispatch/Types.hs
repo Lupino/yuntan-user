@@ -125,6 +125,7 @@ instance ToJSON User where
 
 instance ToJSON Bind where
   toJSON Bind{..} = object [ "id"         .= getBindID
+                           , "user_id"    .= getBindUid
                            , "name"       .= getBindName
                            , "service"    .= getBindService
                            , "extra"      .= getBindExtra
