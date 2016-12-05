@@ -112,7 +112,7 @@ application = do
 
   get    "/api/users/"                       getUsersAPIHandler
   post   "/api/users/"                       createUserAPIHandler
-  get    "/api/users/:uidOrName/"            getUserAPIHandler
+  get    "/api/users/:uidOrName/"            $ requireUser getUserAPIHandler
   delete "/api/users/:uidOrName/"            $ requireUser removeUserAPIHandler
 
   post   "/api/users/:uidOrName/"            $ requireUser updateUserNameAPIHandler

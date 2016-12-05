@@ -87,9 +87,8 @@ apiUser = do
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
 
-getUserAPIHandler :: ActionM ()
-getUserAPIHandler = do
-  json =<< apiUser
+getUserAPIHandler :: User -> ActionM ()
+getUserAPIHandler = json
 
 requireUser :: (User -> ActionM()) -> ActionM ()
 requireUser act = do
