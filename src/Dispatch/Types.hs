@@ -14,15 +14,7 @@ module Dispatch.Types
   , ServiceName
   , CreatedAt
   , Bind (..)
-  , From
-  , Size
-  , OrderBy
-  , asc
-  , desc
-  , emptyOrder
   , Extra
-  , unionExtra
-  , differenceExtra
   , TablePrefix
   ) where
 
@@ -33,7 +25,6 @@ import           Database.MySQL.Simple.Result       (Result, convert)
 import           Data.Aeson                         (ToJSON (..), Value (..),
                                                      decodeStrict, object, (.=))
 import           Data.Hashable                      (Hashable (..))
-import           Data.HashMap.Strict                (difference, union)
 import           Data.Int                           (Int64)
 import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
@@ -41,8 +32,6 @@ import           GHC.Generics                       (Generic)
 
 type UserID      = Int64
 type BindID      = Int64
-type From        = Int64
-type Size        = Int64
 type UserName    = Text
 type Password    = Text
 type Service     = Text
@@ -50,30 +39,6 @@ type ServiceName = Text
 type Extra       = Value
 type CreatedAt   = Int64
 type TablePrefix = String
-
-data OrderBy = Desc String | Asc String | EmptyOrder
-  deriving (Generic, Eq)
-
-instance Hashable OrderBy
-
-desc :: String -> OrderBy
-desc = Desc
-
-asc :: String -> OrderBy
-asc = Asc
-
-emptyOrder :: OrderBy
-emptyOrder = EmptyOrder
-
-quote :: String -> String
-quote s@(x:xs) | '.' `elem` s = x : quote xs
-               | otherwise    = '`' : x : xs ++ "`"
-quote []                      = []
-
-instance Show OrderBy where
-  show (Desc field) = "ORDER BY " ++ quote field ++ " DESC"
-  show (Asc field)  = "ORDER BY " ++ quote field ++ " ASC"
-  show EmptyOrder   = ""
 
 data User = User { getUserID        :: UserID
                  , getUserName      :: UserName
@@ -135,14 +100,3 @@ instance ToJSON Bind where
 instance Result Value where
   convert f (Just bs) = fromMaybe Null (decodeStrict bs)
   convert _ Nothing   = Null
-
-unionExtra :: Value -> Value -> Value
-unionExtra (Object a) (Object b) = Object $ union a b
-unionExtra (Object a) _          = Object a
-unionExtra _ (Object b)          = Object b
-unionExtra _ _                   = Null
-
-differenceExtra :: Value -> Value -> Value
-differenceExtra (Object a) (Object b) = Object $ difference a b
-differenceExtra (Object a) _          = Object a
-differenceExtra _ _                   = Null

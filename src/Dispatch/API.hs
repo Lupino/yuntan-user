@@ -22,13 +22,15 @@ module Dispatch.API
   , createTable
   ) where
 
-import           Data.Int            (Int64)
-import           Data.Maybe          (catMaybes)
-import           Haxl.Core           (dataFetch, uncachedRequest)
+import           Data.Int                  (Int64)
+import           Data.Maybe                (catMaybes)
+import           Haxl.Core                 (dataFetch, uncachedRequest)
 
 import           Dispatch.DataSource
 import           Dispatch.Types
-import           Dispatch.UserEnv    (DispatchM)
+import           Dispatch.Types.ListResult (From, Size)
+import           Dispatch.Types.OrderBy    (OrderBy)
+import           Dispatch.UserEnv          (DispatchM)
 
 createUser         :: UserName -> Password -> DispatchM UserID
 getUser            :: UserID -> DispatchM (Maybe User)

@@ -13,16 +13,18 @@ module Dispatch.DataSource.User
   , getUsers
   ) where
 
-import           Database.MySQL.Simple (Connection, Only (..), execute,
-                                        insertID, query, query_)
+import           Database.MySQL.Simple     (Connection, Only (..), execute,
+                                            insertID, query, query_)
 
-import           Data.Aeson            (Value (..), encode)
-import           Data.Int              (Int64)
-import           Data.Maybe            (listToMaybe)
-import           Data.String           (fromString)
+import           Data.Aeson                (Value (..), encode)
+import           Data.Int                  (Int64)
+import           Data.Maybe                (listToMaybe)
+import           Data.String               (fromString)
 import           Data.UnixTime
 
 import           Dispatch.Types
+import           Dispatch.Types.ListResult (From, Size)
+import           Dispatch.Types.OrderBy    (OrderBy)
 
 createUser :: UserName -> Password -> TablePrefix -> Connection -> IO UserID
 createUser name passwd prefix conn = do

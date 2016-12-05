@@ -39,9 +39,10 @@ library
                      , mtl
                      , aeson
                      , http-types
-                     , unordered-containers
                      , cryptohash
                      , hex
+
+                     , dispatch-common
   default-language:    Haskell2010
 
 executable dispatch-user

@@ -18,16 +18,21 @@ module Dispatch.APIHandler
   , removeBindAPIHandler
   ) where
 
-import           Control.Monad        (void)
-import           Control.Monad.Reader (lift)
+import           Control.Monad             (void)
+import           Control.Monad.Reader      (lift)
 
 import           Dispatch
-import           Network.HTTP.Types   (status400, status404)
-import           Web.Scotty.Trans     (body, json, param, rescue, status)
+import           Dispatch.Types.ListResult (From, ListResult (..), Size,
+                                            fromListResult)
+import           Dispatch.Types.OrderBy    (desc)
+import           Dispatch.Types.Result     (err, ok)
+import           Dispatch.Utils.JSON       (differenceValue, unionValue)
+import           Network.HTTP.Types        (status400, status404)
+import           Web.Scotty.Trans          (body, json, param, rescue, status)
 
-import           Data.Aeson           (Value (..), decode, object, (.=))
-import           Data.Maybe           (fromMaybe)
-import           Data.Text            (pack, unpack)
+import           Data.Aeson                (Value (..), decode)
+import           Data.Maybe                (fromMaybe)
+import           Data.Text                 (pack, unpack)
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -49,13 +54,13 @@ verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
            else status status400 >> errorInvalidPassword
 
 errorInvalidPassword :: ActionM ()
-errorInvalidPassword = json $ object [ "err" .= pack "invalid password" ]
+errorInvalidPassword = json $ err "invalid password"
 
 errorInvalidUserName :: ActionM ()
-errorInvalidUserName = json $ object [ "err" .= pack ("invalid username, the valid username char is " ++ validUserName) ]
+errorInvalidUserName = json . err $ "invalid username, the valid username char is " ++ validUserName
 
 errorInvalidUserName' :: ActionM ()
-errorInvalidUserName' = json $ object [ "err" .= pack "invalid username, the valid username need one or more char which is not a number." ]
+errorInvalidUserName' = json $ err "invalid username, the valid username need one or more char which is not a number."
 
 validUserName :: String
 validUserName = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z'] ++ ['.', '_', '-']
@@ -94,7 +99,7 @@ requireUser act = do
     Nothing -> status status404 >> errorUserNotExists
 
   where errorUserNotExists :: ActionM ()
-        errorUserNotExists = json $ object [ "err" .= pack "User is not exists." ]
+        errorUserNotExists = json $ err "User is not exists."
 
 removeUserAPIHandler :: User -> ActionM ()
 removeUserAPIHandler (User { getUserID = uid }) = do
@@ -122,17 +127,17 @@ updateUserExtraAPIHandler :: User -> ActionM ()
 updateUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
-    Just ev -> void (lift $ updateUserExtra uid $ unionExtra ev oev) >> resultOK
+    Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
     Nothing -> status status400 >> errorExtraRequired
 
 errorExtraRequired :: ActionM ()
-errorExtraRequired = json $ object [ "err" .= pack "extra field is required." ]
+errorExtraRequired = json $ err "extra field is required."
 
 removeUserExtraAPIHandler :: User -> ActionM ()
 removeUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
-    Just ev -> void (lift $ updateUserExtra uid $ differenceExtra oev ev) >> resultOK
+    Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> status status400 >> errorExtraRequired
 
 clearUserExtraAPIHandler :: User -> ActionM ()
@@ -145,7 +150,12 @@ getUsersAPIHandler = do
   size <- param "size" `rescue` (\_ -> return (10::Size))
   total <- lift countUser
   users <- lift $ getUsers from size $ desc "id"
-  json $ object [ "from" .= from, "size" .= size, "total" .= total, "users" .= users ]
+
+  json . fromListResult "users" $ ListResult { getFrom   = from
+                                             , getSize   = size
+                                             , getTotal  = total
+                                             , getResult = users
+                                             }
 
 createBindAPIHandler :: User -> ActionM ()
 createBindAPIHandler (User { getUserID = uid }) = do
@@ -167,4 +177,4 @@ removeBindAPIHandler = do
   resultOK
 
 resultOK :: ActionM ()
-resultOK = json $ object [ "result" .= pack "OK" ]
+resultOK = json $ ok "OK"

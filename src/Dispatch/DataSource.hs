@@ -26,6 +26,8 @@ import           Dispatch.DataSource.Bind
 import           Dispatch.DataSource.Table
 import           Dispatch.DataSource.User
 import           Dispatch.Types
+import           Dispatch.Types.ListResult (From, Size)
+import           Dispatch.Types.OrderBy    (OrderBy)
 import           Dispatch.UserEnv          (UserEnv (..))
 
 import qualified Control.Exception         (SomeException, bracket_, try)
