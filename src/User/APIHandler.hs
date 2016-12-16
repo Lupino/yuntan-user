@@ -26,6 +26,7 @@ import           Dispatch.Types.ListResult (From, ListResult (..), Size,
 import           Dispatch.Types.OrderBy    (desc)
 import           Dispatch.Types.Result     (err, ok)
 import           Dispatch.Utils.JSON       (differenceValue, unionValue)
+import           Dispatch.Utils.Scotty     (maybeNotFound)
 import           Network.HTTP.Types        (status400, status404)
 import           User
 import           Web.Scotty.Trans          (body, json, param, rescue, status)
@@ -33,11 +34,6 @@ import           Web.Scotty.Trans          (body, json, param, rescue, status)
 import           Data.Aeson                (ToJSON, Value (..), decode)
 import           Data.Maybe                (fromMaybe)
 import           Data.Text                 (pack, unpack)
-
-maybeNotFound :: ToJSON a => String -> Maybe a -> ActionM ()
-maybeNotFound _ (Just a) = json a
-maybeNotFound obj Nothing = status status404
-                            >> json (err $ obj ++ "not found.")
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -100,10 +96,10 @@ requireUser act = do
   user <- apiUser
   case user of
     Just u  -> act u
-    Nothing -> status status404 >> errorUserNotExists
+    Nothing ->  errorUserNotFound
 
-  where errorUserNotExists :: ActionM ()
-        errorUserNotExists = json $ err "User is not exists."
+  where errorUserNotFound :: ActionM ()
+        errorUserNotFound = status status404 >> json (err "User is not found.")
 
 removeUserAPIHandler :: User -> ActionM ()
 removeUserAPIHandler (User { getUserID = uid }) = do
@@ -132,10 +128,10 @@ updateUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
-    Nothing -> status status400 >> errorExtraRequired
+    Nothing -> errorExtraRequired
 
 errorExtraRequired :: ActionM ()
-errorExtraRequired = json $ err "extra field is required."
+errorExtraRequired = status status400 >> json (err "extra field is required.")
 
 removeUserExtraAPIHandler :: User -> ActionM ()
 removeUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
