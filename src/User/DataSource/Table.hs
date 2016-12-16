@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dispatch.DataSource.Table
+module User.DataSource.Table
   (
     createTable
   ) where
@@ -10,7 +10,7 @@ import           Database.MySQL.Simple (Connection, execute_)
 import           Data.Int              (Int64)
 import           Data.String           (fromString)
 
-import           Dispatch.Types
+import           User.Types
 
 
 createUserTable :: TablePrefix -> Connection -> IO Int64

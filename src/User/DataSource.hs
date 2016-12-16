@@ -7,8 +7,8 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Dispatch.DataSource (
-    DispatchReq(..),
+module User.DataSource (
+    UserReq(..),
     initGlobalState
   ) where
 
@@ -22,13 +22,13 @@ import           Haxl.Core                 (BlockedFetch (..), DataSource,
                                             putSuccess, show1, stateEmpty,
                                             stateSet)
 
-import           Dispatch.DataSource.Bind
-import           Dispatch.DataSource.Table
-import           Dispatch.DataSource.User
-import           Dispatch.Types
 import           Dispatch.Types.ListResult (From, Size)
 import           Dispatch.Types.OrderBy    (OrderBy)
-import           Dispatch.UserEnv          (UserEnv (..))
+import           User.DataSource.Bind
+import           User.DataSource.Table
+import           User.DataSource.User
+import           User.Types
+import           User.UserEnv              (UserEnv (..))
 
 import qualified Control.Exception         (SomeException, bracket_, try)
 import           Data.Int                  (Int64)
@@ -41,32 +41,32 @@ import           Data.Maybe                (fromJust, isJust)
 
 -- Data source implementation.
 
-data DispatchReq a where
-  CreateUser         :: UserName -> Password -> DispatchReq UserID
-  GetUser            :: UserID -> DispatchReq (Maybe User)
-  GetUserByName      :: UserName -> DispatchReq (Maybe User)
-  RemoveUser         :: UserID -> DispatchReq Int64
-  UpdateUserName     :: UserID -> UserName -> DispatchReq Int64
-  UpdateUserPassword :: UserID -> Password -> DispatchReq Int64
-  UpdateUserExtra    :: UserID -> Extra -> DispatchReq Int64
-  GetUsers           :: From -> Size -> OrderBy -> DispatchReq [User]
-  CountUser          :: DispatchReq Int64
+data UserReq a where
+  CreateUser         :: UserName -> Password -> UserReq UserID
+  GetUser            :: UserID -> UserReq (Maybe User)
+  GetUserByName      :: UserName -> UserReq (Maybe User)
+  RemoveUser         :: UserID -> UserReq Int64
+  UpdateUserName     :: UserID -> UserName -> UserReq Int64
+  UpdateUserPassword :: UserID -> Password -> UserReq Int64
+  UpdateUserExtra    :: UserID -> Extra -> UserReq Int64
+  GetUsers           :: From -> Size -> OrderBy -> UserReq [User]
+  CountUser          :: UserReq Int64
 
-  CreateBind         :: UserID -> Service -> ServiceName -> Extra -> DispatchReq BindID
-  GetBind            :: BindID -> DispatchReq (Maybe Bind)
-  GetBindByName      :: ServiceName -> DispatchReq (Maybe Bind)
-  RemoveBind         :: BindID -> DispatchReq Int64
-  UpdateBindExtra    :: BindID -> Extra -> DispatchReq Int64
-  CountBind          :: UserID -> DispatchReq Int64
-  GetBinds           :: UserID -> DispatchReq [Bind]
-  RemoveBinds        :: UserID -> DispatchReq Int64
+  CreateBind         :: UserID -> Service -> ServiceName -> Extra -> UserReq BindID
+  GetBind            :: BindID -> UserReq (Maybe Bind)
+  GetBindByName      :: ServiceName -> UserReq (Maybe Bind)
+  RemoveBind         :: BindID -> UserReq Int64
+  UpdateBindExtra    :: BindID -> Extra -> UserReq Int64
+  CountBind          :: UserID -> UserReq Int64
+  GetBinds           :: UserID -> UserReq [Bind]
+  RemoveBinds        :: UserID -> UserReq Int64
 
-  CreateTable        :: DispatchReq Int64
+  CreateTable        :: UserReq Int64
 
   deriving (Typeable)
 
-deriving instance Eq (DispatchReq a)
-instance Hashable (DispatchReq a) where
+deriving instance Eq (UserReq a)
+instance Hashable (UserReq a) where
   hashWithSalt s (CreateUser n h)         = hashWithSalt s (0::Int, n, h)
   hashWithSalt s (GetUser k)              = hashWithSalt s (1::Int, k)
   hashWithSalt s (GetUserByName k)        = hashWithSalt s (2::Int, k)
@@ -88,23 +88,23 @@ instance Hashable (DispatchReq a) where
 
   hashWithSalt s CreateTable              = hashWithSalt s (20::Int)
 
-deriving instance Show (DispatchReq a)
-instance Show1 DispatchReq where show1 = show
+deriving instance Show (UserReq a)
+instance Show1 UserReq where show1 = show
 
-instance StateKey DispatchReq where
-  data State DispatchReq = DispatchState { numThreads :: Int }
+instance StateKey UserReq where
+  data State UserReq = UserState { numThreads :: Int }
 
-instance DataSourceName DispatchReq where
-  dataSourceName _ = "DispatchDataSource"
+instance DataSourceName UserReq where
+  dataSourceName _ = "UserDataSource"
 
-instance DataSource UserEnv DispatchReq where
+instance DataSource UserEnv UserReq where
   fetch = dispatchFetch
 
 dispatchFetch
-  :: State DispatchReq
+  :: State UserReq
   -> Flags
   -> UserEnv
-  -> [BlockedFetch DispatchReq]
+  -> [BlockedFetch UserReq]
   -> PerformFetch
 
 dispatchFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
@@ -113,21 +113,21 @@ dispatchFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
   inner
   mapM_ wait asyncs
 
-fetchAsync :: QSem -> UserEnv -> BlockedFetch DispatchReq -> IO (Async ())
+fetchAsync :: QSem -> UserEnv -> BlockedFetch UserReq -> IO (Async ())
 fetchAsync sem env req = async $
   Control.Exception.bracket_ (waitQSem sem) (signalQSem sem) $ withResource pool $ fetchSync req prefix
 
   where pool   = mySQLPool env
         prefix = tablePrefix env
 
-fetchSync :: BlockedFetch DispatchReq -> TablePrefix -> Connection -> IO ()
+fetchSync :: BlockedFetch UserReq -> TablePrefix -> Connection -> IO ()
 fetchSync (BlockedFetch req rvar) prefix conn = do
   e <- Control.Exception.try $ fetchReq req prefix conn
   case e of
     Left ex -> putFailure rvar (ex :: Control.Exception.SomeException)
     Right a -> putSuccess rvar a
 
-fetchReq :: DispatchReq a -> TablePrefix -> Connection -> IO a
+fetchReq :: UserReq a -> TablePrefix -> Connection -> IO a
 fetchReq  (CreateUser n h)         = createUser n h
 fetchReq  (GetUser k)              = getUser k
 fetchReq  (GetUserByName k)        = getUserByName k
@@ -154,4 +154,4 @@ fetchReq CreateTable               = createTable
 
 initGlobalState :: Int -> StateStore
 initGlobalState threads = stateSet dispatchState stateEmpty
-  where dispatchState = DispatchState threads
+  where dispatchState = UserState threads

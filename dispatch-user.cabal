@@ -15,17 +15,17 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Dispatch
-                     , Dispatch.Types
-                     , Dispatch.UserEnv
-                     , Dispatch.DataSource
-                     , Dispatch.DataSource.User
-                     , Dispatch.DataSource.Bind
-                     , Dispatch.DataSource.Table
-                     , Dispatch.API
+  exposed-modules:     User
+                     , User.Types
+                     , User.UserEnv
+                     , User.DataSource
+                     , User.DataSource.User
+                     , User.DataSource.Bind
+                     , User.DataSource.Table
+                     , User.API
 
-                     , Dispatch.APIHandler
-                     , Dispatch.Utils
+                     , User.APIHandler
+                     , User.Utils
   build-depends:       base >= 4.7 && < 5
                      , unix-time
                      , text

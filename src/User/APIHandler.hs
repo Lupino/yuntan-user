@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Dispatch.APIHandler
+module User.APIHandler
   (
     createUserAPIHandler
   , requireUser
@@ -21,18 +21,23 @@ module Dispatch.APIHandler
 import           Control.Monad             (void)
 import           Control.Monad.Reader      (lift)
 
-import           Dispatch
 import           Dispatch.Types.ListResult (From, ListResult (..), Size,
                                             fromListResult)
 import           Dispatch.Types.OrderBy    (desc)
 import           Dispatch.Types.Result     (err, ok)
 import           Dispatch.Utils.JSON       (differenceValue, unionValue)
 import           Network.HTTP.Types        (status400, status404)
+import           User
 import           Web.Scotty.Trans          (body, json, param, rescue, status)
 
-import           Data.Aeson                (Value (..), decode)
+import           Data.Aeson                (ToJSON, Value (..), decode)
 import           Data.Maybe                (fromMaybe)
 import           Data.Text                 (pack, unpack)
+
+maybeNotFound :: ToJSON a => String -> Maybe a -> ActionM ()
+maybeNotFound _ (Just a) = json a
+maybeNotFound obj Nothing = status status404
+                            >> json (err $ obj ++ "not found.")
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -167,7 +172,7 @@ createBindAPIHandler (User { getUserID = uid }) = do
 getBindAPIHandler :: ActionM ()
 getBindAPIHandler = do
   name <- param "name"
-  json =<< lift (getBindByName name)
+  maybeNotFound "Bind" =<< lift (getBindByName name)
 
 removeBindAPIHandler :: ActionM ()
 removeBindAPIHandler = do

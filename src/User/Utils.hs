@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Dispatch.Utils
+module User.Utils
   (
     hashPassword
   , isVaildPassword

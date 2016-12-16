@@ -19,11 +19,11 @@ import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        settings)
 
 import           Control.Monad                        (when)
-import           Dispatch
-import           Dispatch.APIHandler
 import           Haxl.Core                            (StateStore, initEnv,
                                                        runHaxl, stateEmpty,
                                                        stateSet)
+import           User
+import           User.APIHandler
 
 import           Data.Text                            (pack)
 import           Data.Yaml.Config                     as Y (load, lookupDefault,
@@ -101,7 +101,7 @@ program opts = do
   _ <- runIO userEnv state createTable
   scottyOptsT opts (runIO userEnv state) application
   where
-        runIO :: UserEnv -> StateStore -> DispatchM b -> IO b
+        runIO :: UserEnv -> StateStore -> UserM b -> IO b
         runIO env s m = do
           env0 <- initEnv s env
           runHaxl env0 m

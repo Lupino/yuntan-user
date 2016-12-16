@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dispatch.DataSource.Bind
+module User.DataSource.Bind
   (
     createBind
   , getBind
@@ -21,7 +21,7 @@ import           Data.Maybe            (listToMaybe)
 import           Data.String           (fromString)
 import           Data.UnixTime
 
-import           Dispatch.Types
+import           User.Types
 
 createBind :: UserID -> Service -> ServiceName -> Extra -> TablePrefix -> Connection -> IO BindID
 createBind uid service name extra prefix conn = do

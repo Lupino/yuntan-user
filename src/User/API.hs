@@ -1,4 +1,4 @@
-module Dispatch.API
+module User.API
   (
     createUser
   , getUser
@@ -26,21 +26,21 @@ import           Data.Int                  (Int64)
 import           Data.Maybe                (catMaybes)
 import           Haxl.Core                 (dataFetch, uncachedRequest)
 
-import           Dispatch.DataSource
-import           Dispatch.Types
 import           Dispatch.Types.ListResult (From, Size)
 import           Dispatch.Types.OrderBy    (OrderBy)
-import           Dispatch.UserEnv          (DispatchM)
+import           User.DataSource
+import           User.Types
+import           User.UserEnv              (UserM)
 
-createUser         :: UserName -> Password -> DispatchM UserID
-getUser            :: UserID -> DispatchM (Maybe User)
-getUserByName      :: UserName -> DispatchM (Maybe User)
-removeUser         :: UserID -> DispatchM Int64
-updateUserName     :: UserID -> UserName -> DispatchM Int64
-updateUserPassword :: UserID -> Password -> DispatchM Int64
-updateUserExtra    :: UserID -> Extra -> DispatchM Int64
-getUsers           :: From -> Size -> OrderBy -> DispatchM [User]
-countUser          :: DispatchM Int64
+createUser         :: UserName -> Password -> UserM UserID
+getUser            :: UserID -> UserM (Maybe User)
+getUserByName      :: UserName -> UserM (Maybe User)
+removeUser         :: UserID -> UserM Int64
+updateUserName     :: UserID -> UserName -> UserM Int64
+updateUserPassword :: UserID -> Password -> UserM Int64
+updateUserExtra    :: UserID -> Extra -> UserM Int64
+getUsers           :: From -> Size -> OrderBy -> UserM [User]
+countUser          :: UserM Int64
 
 createUser name passwd        = uncachedRequest (CreateUser name passwd)
 getUser uid                   = fillBinds =<< dataFetch (GetUser uid)
@@ -53,14 +53,14 @@ getUsers from size order      = catMaybes <$> (mapM (\u -> fillBinds (Just u))
                                       =<< dataFetch (GetUsers from size order))
 countUser                     = dataFetch CountUser
 
-createBind         :: UserID -> Service -> ServiceName -> Extra -> DispatchM BindID
-getBind            :: BindID -> DispatchM (Maybe Bind)
-getBindByName      :: ServiceName -> DispatchM (Maybe Bind)
-removeBind         :: BindID -> DispatchM Int64
-updateBindExtra    :: BindID -> Extra -> DispatchM Int64
-countBind          :: UserID -> DispatchM Int64
-getBinds           :: UserID -> DispatchM [Bind]
-removeBinds        :: UserID -> DispatchM Int64
+createBind         :: UserID -> Service -> ServiceName -> Extra -> UserM BindID
+getBind            :: BindID -> UserM (Maybe Bind)
+getBindByName      :: ServiceName -> UserM (Maybe Bind)
+removeBind         :: BindID -> UserM Int64
+updateBindExtra    :: BindID -> Extra -> UserM Int64
+countBind          :: UserID -> UserM Int64
+getBinds           :: UserID -> UserM [Bind]
+removeBinds        :: UserID -> UserM Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
 getBind bid            = dataFetch (GetBind bid)
@@ -71,12 +71,12 @@ countBind uid          = dataFetch (CountBind uid)
 getBinds uid           = dataFetch (GetBinds uid)
 removeBinds uid        = uncachedRequest (RemoveBinds uid)
 
-fillBinds :: Maybe User -> DispatchM (Maybe User)
+fillBinds :: Maybe User -> UserM (Maybe User)
 fillBinds (Just u@(User { getUserID = uid })) = do
   binds <- getBinds uid
   return (Just u { getUserBinds = binds })
 
 fillBinds Nothing = return Nothing
 
-createTable :: DispatchM Int64
+createTable :: UserM Int64
 createTable = uncachedRequest CreateTable

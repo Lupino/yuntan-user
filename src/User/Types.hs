@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
-module Dispatch.Types
+module User.Types
   (
     User (..)
   , UserID

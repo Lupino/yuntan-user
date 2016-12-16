@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dispatch.UserEnv
+module User.UserEnv
   (
     UserEnv(..)
   , ActionM
   , ScottyM
-  , DispatchM
+  , UserM
   ) where
 
 import           Control.Monad.IO.Class (MonadIO (..))
@@ -20,10 +20,10 @@ data UserEnv = UserEnv { mySQLPool   :: Pool Connection
                        , tablePrefix :: String
                        }
 
-type DispatchM = GenHaxl UserEnv
+type UserM = GenHaxl UserEnv
 
 instance MonadIO (GenHaxl u) where
   liftIO = unsafeLiftIO
 
-type ActionM a = ActionT LT.Text DispatchM a
-type ScottyM a = ScottyT LT.Text DispatchM a
+type ActionM a = ActionT LT.Text UserM a
+type ScottyM a = ScottyT LT.Text UserM a

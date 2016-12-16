@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dispatch.DataSource.User
+module User.DataSource.User
   (
     createUser
   , getUser
@@ -22,9 +22,9 @@ import           Data.Maybe                (listToMaybe)
 import           Data.String               (fromString)
 import           Data.UnixTime
 
-import           Dispatch.Types
 import           Dispatch.Types.ListResult (From, Size)
 import           Dispatch.Types.OrderBy    (OrderBy)
+import           User.Types
 
 createUser :: UserName -> Password -> TablePrefix -> Connection -> IO UserID
 createUser name passwd prefix conn = do
