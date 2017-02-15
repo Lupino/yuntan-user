@@ -26,6 +26,7 @@ library
 
                      , User.APIHandler
                      , User.Utils
+                     , User.Config
   build-depends:       base >= 4.7 && < 5
                      , unix-time
                      , text
@@ -57,11 +58,8 @@ executable dispatch-user
                      , warp
                      , streaming-commons
                      , wai-extra
-                     , mysql-simple
-                     , mysql
-                     , resource-pool
                      , data-default-class
-                     , yaml-config
+                     , yaml
                      , text
   default-language:    Haskell2010
 
