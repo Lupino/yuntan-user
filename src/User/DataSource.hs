@@ -16,10 +16,10 @@ import           Data.Hashable             (Hashable (..))
 import           Data.Typeable             (Typeable)
 import           Haxl.Core                 (BlockedFetch (..), DataSource,
                                             DataSourceName, Flags,
-                                            PerformFetch (..), Show1, State,
+                                            PerformFetch (..), ShowP, State,
                                             StateKey, StateStore,
                                             dataSourceName, fetch, putFailure,
-                                            putSuccess, show1, stateEmpty,
+                                            putSuccess, showp, stateEmpty,
                                             stateSet)
 
 import           Dispatch.Types.ListResult (From, Size)
@@ -89,7 +89,7 @@ instance Hashable (UserReq a) where
   hashWithSalt s CreateTable              = hashWithSalt s (20::Int)
 
 deriving instance Show (UserReq a)
-instance Show1 UserReq where show1 = show
+instance ShowP UserReq where showp = show
 
 instance StateKey UserReq where
   data State UserReq = UserState { numThreads :: Int }

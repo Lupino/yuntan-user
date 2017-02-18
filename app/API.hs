@@ -21,6 +21,7 @@ import           User.APIHandler
 import qualified Data.Yaml                            as Y
 import qualified User.Config                          as C
 
+import           Data.Semigroup                       ((<>))
 import           Options.Applicative
 
 data Options = Options { getConfigFile  :: String
