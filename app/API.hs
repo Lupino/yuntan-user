@@ -108,3 +108,6 @@ application = do
 
   get    "/api/binds/"                       getBindAPIHandler
   delete "/api/binds/:bind_id"               removeBindAPIHandler
+
+  get    "/api/graphql/" graphqlHandler
+  post   "/api/graphql/" graphqlHandler

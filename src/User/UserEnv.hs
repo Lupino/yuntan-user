@@ -2,7 +2,7 @@
 
 module User.UserEnv
   (
-    UserEnv(..)
+    UserEnv (..)
   , ActionM
   , ScottyM
   , UserM

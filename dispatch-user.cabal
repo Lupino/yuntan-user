@@ -26,6 +26,7 @@ library
 
                      , User.APIHandler
                      , User.Utils
+                     , User.GraphQL
                      , User.Config
   build-depends:       base >= 4.7 && < 5
                      , unix-time
@@ -44,6 +45,7 @@ library
                      , hex
 
                      , dispatch-common
+                     , graphql
   default-language:    Haskell2010
 
 executable dispatch-user

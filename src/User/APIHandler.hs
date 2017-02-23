@@ -16,6 +16,8 @@ module User.APIHandler
   , createBindAPIHandler
   , getBindAPIHandler
   , removeBindAPIHandler
+
+  , graphqlHandler
   ) where
 
 import           Control.Monad             (void)
@@ -34,6 +36,9 @@ import           Web.Scotty.Trans          (body, json, param, rescue, status)
 import           Data.Aeson                (ToJSON, Value (..), decode)
 import           Data.Maybe                (fromMaybe)
 import           Data.Text                 (pack, unpack)
+
+import           Data.GraphQL              (graphql)
+import           User.GraphQL              (schema)
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -178,3 +183,9 @@ removeBindAPIHandler = do
 
 resultOK :: ActionM ()
 resultOK = json $ ok "OK"
+
+
+graphqlHandler :: ActionM ()
+graphqlHandler = do
+  query <- param "query"
+  json =<< lift (graphql schema query)
