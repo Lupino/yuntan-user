@@ -14,9 +14,6 @@ import           Data.GraphQL.Schema    (Argument (..), Resolver, Schema (..),
                                          Value (..), array, arrayA', objectA',
                                          scalar, scalarA)
 import           Data.Int               (Int32)
-import           Data.Maybe             (fromMaybe)
-import           Data.String            (fromString)
-import           Data.Text              (Text)
 import           Dispatch.Types.OrderBy (desc)
 import           Dispatch.Utils.GraphQL (getValue, value, value')
 import           User.API
@@ -24,7 +21,7 @@ import           User.Types
 import           User.UserEnv           (UserM)
 
 schema :: Schema UserM
-schema = Schema [user, bind, users]
+schema = Schema [user, bind, users, total]
 
 user :: Resolver UserM
 user = objectA' "user" $ \case
@@ -67,3 +64,7 @@ users = arrayA' "users" $ \ argv -> do
   where users_ :: Int32 -> Int32 -> UserM [[Resolver UserM]]
         users_ f s = map user_ <$> getUsers (fromIntegral f) (fromIntegral s) (desc "id")
 
+total :: Resolver UserM
+total = scalarA "total" $ \case
+  [] -> countUser
+  _  -> empty
