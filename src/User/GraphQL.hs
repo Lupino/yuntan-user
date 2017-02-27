@@ -8,14 +8,12 @@ module User.GraphQL
   ) where
 
 import           Control.Applicative    (Alternative (..))
-import qualified Data.Aeson             as A (Value (..))
-import           Data.GraphQL.AST       (Name)
 import           Data.GraphQL.Schema    (Argument (..), Resolver, Schema (..),
                                          Value (..), array, arrayA', objectA',
                                          scalar, scalarA)
 import           Data.Int               (Int32)
 import           Dispatch.Types.OrderBy (desc)
-import           Dispatch.Utils.GraphQL (getValue, value, value')
+import           Dispatch.Utils.GraphQL (getValue, value)
 import           User.API
 import           User.Types
 import           User.UserEnv           (UserM)

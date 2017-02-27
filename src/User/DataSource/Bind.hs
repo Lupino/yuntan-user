@@ -12,10 +12,11 @@ module User.DataSource.Bind
   , removeBinds
   ) where
 
+import           Control.Monad         (void)
 import           Database.MySQL.Simple (Connection, Only (..), execute,
-                                        insertID, query, query_)
+                                        insertID, query)
 
-import           Data.Aeson            (Value (..), encode)
+import           Data.Aeson            (encode)
 import           Data.Int              (Int64)
 import           Data.Maybe            (listToMaybe)
 import           Data.String           (fromString)
@@ -26,7 +27,7 @@ import           User.Types
 createBind :: UserID -> Service -> ServiceName -> Extra -> TablePrefix -> Connection -> IO BindID
 createBind uid service name extra prefix conn = do
   t <- getUnixTime
-  execute conn sql (uid, service, name, encode extra, show $ toEpochTime t)
+  void $ execute conn sql (uid, service, name, encode extra, show $ toEpochTime t)
   fromIntegral <$> insertID conn
 
   where sql = fromString $ concat [ "INSERT INTO `", prefix, "_binds` "

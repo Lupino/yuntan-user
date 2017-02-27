@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
@@ -24,11 +23,9 @@ import           Database.MySQL.Simple.Result       (Result, convert)
 
 import           Data.Aeson                         (ToJSON (..), Value (..),
                                                      decodeStrict, object, (.=))
-import           Data.Hashable                      (Hashable (..))
 import           Data.Int                           (Int64)
 import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
-import           GHC.Generics                       (Generic)
 
 type UserID      = Int64
 type BindID      = Int64
@@ -98,5 +95,5 @@ instance ToJSON Bind where
                            ]
 
 instance Result Value where
-  convert f (Just bs) = fromMaybe Null (decodeStrict bs)
+  convert _ (Just bs) = fromMaybe Null (decodeStrict bs)
   convert _ Nothing   = Null

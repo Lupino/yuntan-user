@@ -13,10 +13,11 @@ module User.DataSource.User
   , getUsers
   ) where
 
+import           Control.Monad             (void)
 import           Database.MySQL.Simple     (Connection, Only (..), execute,
                                             insertID, query, query_)
 
-import           Data.Aeson                (Value (..), encode)
+import           Data.Aeson                (encode)
 import           Data.Int                  (Int64)
 import           Data.Maybe                (listToMaybe)
 import           Data.String               (fromString)
@@ -29,7 +30,7 @@ import           User.Types
 createUser :: UserName -> Password -> TablePrefix -> Connection -> IO UserID
 createUser name passwd prefix conn = do
   t <- getUnixTime
-  execute conn sql (name, passwd, show $ toEpochTime t)
+  void $ execute conn sql (name, passwd, show $ toEpochTime t)
   fromIntegral <$> insertID conn
 
   where sql = fromString $ concat [ "INSERT INTO `", prefix, "_users` "

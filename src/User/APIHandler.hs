@@ -31,9 +31,9 @@ import           Dispatch.Utils.JSON       (differenceValue, unionValue)
 import           Dispatch.Utils.Scotty     (maybeNotFound)
 import           Network.HTTP.Types        (status400, status404)
 import           User
-import           Web.Scotty.Trans          (body, json, param, rescue, status)
+import           Web.Scotty.Trans          (json, param, rescue, status)
 
-import           Data.Aeson                (ToJSON, Value (..), decode)
+import           Data.Aeson                (Value (..), decode)
 import           Data.Maybe                (fromMaybe)
 import           Data.Text                 (pack, unpack)
 
@@ -88,7 +88,7 @@ apiUser = do
   name <- param "uidOrName"
   user <- lift $ getUserByName (pack name)
   case user of
-    Just user -> return $ Just user
+    Just u -> return $ Just u
     Nothing -> do
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
@@ -108,8 +108,8 @@ requireUser act = do
 
 removeUserAPIHandler :: User -> ActionM ()
 removeUserAPIHandler (User { getUserID = uid }) = do
-  lift $ removeUser uid
-  lift $ removeBinds uid
+  void . lift $ removeUser uid
+  void . lift $ removeBinds uid
   resultOK
 
 updateUserNameAPIHandler :: User -> ActionM ()
@@ -119,13 +119,13 @@ updateUserNameAPIHandler (User { getUserID = uid }) = do
     (True, _) -> status status400 >> errorInvalidUserName'
     (False, False) -> status status400 >> errorInvalidUserName
     (False, True) -> do
-      lift $ updateUserName uid (pack name)
+      void . lift $ updateUserName uid (pack name)
       resultOK
 
 updateUserPasswordAPIHandler :: User -> ActionM ()
 updateUserPasswordAPIHandler (User { getUserID = uid }) = do
   passwd <- pack . hashPassword <$> param "passwd"
-  lift $ updateUserPassword uid passwd
+  void . lift $ updateUserPassword uid passwd
   resultOK
 
 updateUserExtraAPIHandler :: User -> ActionM ()
@@ -178,7 +178,7 @@ getBindAPIHandler = do
 removeBindAPIHandler :: ActionM ()
 removeBindAPIHandler = do
   bid <- param "bind_id"
-  lift $ removeBind bid
+  void . lift $ removeBind bid
   resultOK
 
 resultOK :: ActionM ()
