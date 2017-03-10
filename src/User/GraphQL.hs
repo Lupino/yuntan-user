@@ -8,10 +8,11 @@ module User.GraphQL
   ) where
 
 import           Control.Applicative    (Alternative (..))
-import           Data.GraphQL.Schema    (Argument (..), Resolver, Schema (..),
+import           Data.GraphQL.Schema    (Argument (..), Resolver, Schema,
                                          Value (..), array, arrayA', objectA',
                                          scalar, scalarA)
 import           Data.Int               (Int32)
+import           Data.List.NonEmpty     (NonEmpty ((:|)))
 import           Dispatch.Types.OrderBy (desc)
 import           Dispatch.Utils.GraphQL (getValue, value)
 import           User.API
@@ -19,7 +20,7 @@ import           User.Types
 import           User.UserEnv           (UserM)
 
 schema :: Schema UserM
-schema = Schema [user, bind, users, total]
+schema = user :| [bind, users, total]
 
 user :: Resolver UserM
 user = objectA' "user" $ \case
