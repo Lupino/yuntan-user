@@ -23,15 +23,13 @@ module User.APIHandler
 import           Control.Monad             (void)
 import           Control.Monad.Reader      (lift)
 
-import           Dispatch.Types.ListResult (From, ListResult (..), Size,
-                                            fromListResult)
+import           Dispatch.Types.ListResult (From, ListResult (..), Size)
 import           Dispatch.Types.OrderBy    (desc)
-import           Dispatch.Types.Result     (err, ok)
 import           Dispatch.Utils.JSON       (differenceValue, unionValue)
-import           Dispatch.Utils.Scotty     (maybeNotFound)
-import           Network.HTTP.Types        (status400, status404)
+import           Dispatch.Utils.Scotty     (errBadRequest, errNotFound,
+                                            maybeNotFound, ok, okListResult)
 import           User
-import           Web.Scotty.Trans          (json, param, rescue, status)
+import           Web.Scotty.Trans          (json, param, rescue)
 
 import           Data.Aeson                (Value (..), decode)
 import           Data.Maybe                (fromMaybe)
@@ -46,8 +44,8 @@ createUserAPIHandler = do
   passwd <- hashPassword <$> param "passwd"
 
   case (isDigest name, isValidUserName name) of
-    (True, _) -> status status400 >> errorInvalidUserName'
-    (False, False) -> status status400 >> errorInvalidUserName
+    (True, _) -> errorInvalidUserName'
+    (False, False) -> errorInvalidUserName
     (False, True) -> do
 
       uid <- lift $ createUser (pack name) (pack passwd)
@@ -57,16 +55,16 @@ verifyPasswordAPIHandler :: User -> ActionM ()
 verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
   valid <- flip isVaildPassword (unpack pwd) <$> param "passwd"
   if valid then resultOK
-           else status status400 >> errorInvalidPassword
+           else errorInvalidPassword
 
 errorInvalidPassword :: ActionM ()
-errorInvalidPassword = json $ err "invalid password"
+errorInvalidPassword = errBadRequest "invalid password"
 
 errorInvalidUserName :: ActionM ()
-errorInvalidUserName = json . err $ "invalid username, the valid username char is " ++ validUserName
+errorInvalidUserName = errBadRequest $ "invalid username, the valid username char is " ++ validUserName
 
 errorInvalidUserName' :: ActionM ()
-errorInvalidUserName' = json $ err "invalid username, the valid username need one or more char which is not a number."
+errorInvalidUserName' = errBadRequest "invalid username, the valid username need one or more char which is not a number."
 
 validUserName :: String
 validUserName = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z'] ++ ['.', '_', '-']
@@ -104,7 +102,7 @@ requireUser act = do
     Nothing ->  errorUserNotFound
 
   where errorUserNotFound :: ActionM ()
-        errorUserNotFound = status status404 >> json (err "User is not found.")
+        errorUserNotFound = errNotFound "User is not found."
 
 removeUserAPIHandler :: User -> ActionM ()
 removeUserAPIHandler (User { getUserID = uid }) = do
@@ -116,8 +114,8 @@ updateUserNameAPIHandler :: User -> ActionM ()
 updateUserNameAPIHandler (User { getUserID = uid }) = do
   name <- param "username"
   case (isDigest name, isValidUserName name) of
-    (True, _) -> status status400 >> errorInvalidUserName'
-    (False, False) -> status status400 >> errorInvalidUserName
+    (True, _) -> errorInvalidUserName'
+    (False, False) -> errorInvalidUserName
     (False, True) -> do
       void . lift $ updateUserName uid (pack name)
       resultOK
@@ -136,14 +134,14 @@ updateUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
     Nothing -> errorExtraRequired
 
 errorExtraRequired :: ActionM ()
-errorExtraRequired = status status400 >> json (err "extra field is required.")
+errorExtraRequired = errBadRequest "extra field is required."
 
 removeUserExtraAPIHandler :: User -> ActionM ()
 removeUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
-    Nothing -> status status400 >> errorExtraRequired
+    Nothing -> errorExtraRequired
 
 clearUserExtraAPIHandler :: User -> ActionM ()
 clearUserExtraAPIHandler (User { getUserID = uid }) = do
@@ -156,11 +154,11 @@ getUsersAPIHandler = do
   total <- lift countUser
   users <- lift $ getUsers from size $ desc "id"
 
-  json . fromListResult "users" $ ListResult { getFrom   = from
-                                             , getSize   = size
-                                             , getTotal  = total
-                                             , getResult = users
-                                             }
+  okListResult "users" ListResult { getFrom   = from
+                                  , getSize   = size
+                                  , getTotal  = total
+                                  , getResult = users
+                                  }
 
 createBindAPIHandler :: User -> ActionM ()
 createBindAPIHandler (User { getUserID = uid }) = do
@@ -182,7 +180,7 @@ removeBindAPIHandler = do
   resultOK
 
 resultOK :: ActionM ()
-resultOK = json $ ok "OK"
+resultOK = ok "result" ("OK" :: String)
 
 
 graphqlHandler :: ActionM ()
