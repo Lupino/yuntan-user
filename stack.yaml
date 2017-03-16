@@ -55,6 +55,7 @@ flags:
     graphql-utils: true
     mysql-config: true
     scotty-utils: true
+    order-by-type: true
 
 # Extra package databases containing global packages
 extra-package-dbs: []
