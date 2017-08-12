@@ -57,7 +57,7 @@ main = execParser opts >>= program
     opts = info (helper <*> parser)
       ( fullDesc
      <> progDesc "User micro server"
-     <> header "dispatch-user - User micro server" )
+     <> header "yuntan-user - User micro server" )
 
 program :: Options -> IO ()
 program Options { getConfigFile  = confFile

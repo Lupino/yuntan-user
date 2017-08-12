@@ -20,23 +20,23 @@ module User.APIHandler
   , graphqlHandler
   ) where
 
-import           Control.Monad             (void)
-import           Control.Monad.Reader      (lift)
+import           Control.Monad           (void)
+import           Control.Monad.Reader    (lift)
 
-import           Dispatch.Types.ListResult (From, ListResult (..), Size)
-import           Dispatch.Types.OrderBy    (desc)
-import           Dispatch.Utils.JSON       (differenceValue, unionValue)
-import           Dispatch.Utils.Scotty     (errBadRequest, errNotFound,
-                                            maybeNotFound, ok, okListResult)
 import           User
-import           Web.Scotty.Trans          (json, param, rescue)
+import           Web.Scotty.Trans        (json, param, rescue)
+import           Yuntan.Types.ListResult (From, ListResult (..), Size)
+import           Yuntan.Types.OrderBy    (desc)
+import           Yuntan.Utils.JSON       (differenceValue, unionValue)
+import           Yuntan.Utils.Scotty     (errBadRequest, errNotFound,
+                                          maybeNotFound, ok, okListResult)
 
-import           Data.Aeson                (Value (..), decode)
-import           Data.Maybe                (fromMaybe)
-import           Data.Text                 (pack, unpack)
+import           Data.Aeson              (Value (..), decode)
+import           Data.Maybe              (fromMaybe)
+import           Data.Text               (pack, unpack)
 
-import           Data.GraphQL              (graphql)
-import           User.GraphQL              (schema)
+import           Data.GraphQL            (graphql)
+import           User.GraphQL            (schema)
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do

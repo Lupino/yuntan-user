@@ -22,15 +22,15 @@ module User.API
   , createTable
   ) where
 
-import           Data.Int                  (Int64)
-import           Data.Maybe                (catMaybes)
-import           Haxl.Core                 (dataFetch, uncachedRequest)
+import           Data.Int                (Int64)
+import           Data.Maybe              (catMaybes)
+import           Haxl.Core               (dataFetch, uncachedRequest)
 
-import           Dispatch.Types.ListResult (From, Size)
-import           Dispatch.Types.OrderBy    (OrderBy)
 import           User.DataSource
 import           User.Types
-import           User.UserEnv              (UserM)
+import           User.UserEnv            (UserM)
+import           Yuntan.Types.ListResult (From, Size)
+import           Yuntan.Types.OrderBy    (OrderBy)
 
 createUser         :: UserName -> Password -> UserM UserID
 getUser            :: UserID -> UserM (Maybe User)

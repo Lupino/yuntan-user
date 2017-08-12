@@ -7,17 +7,17 @@ module User.GraphQL
     schema
   ) where
 
-import           Control.Applicative    (Alternative (..))
-import           Data.GraphQL.Schema    (Argument (..), Resolver, Schema,
-                                         Value (..), array, arrayA', objectA',
-                                         scalar, scalarA)
-import           Data.Int               (Int32)
-import           Data.List.NonEmpty     (NonEmpty ((:|)))
-import           Dispatch.Types.OrderBy (desc)
-import           Dispatch.Utils.GraphQL (getValue, value)
+import           Control.Applicative  (Alternative (..))
+import           Data.GraphQL.Schema  (Argument (..), Resolver, Schema,
+                                       Value (..), array, arrayA', objectA',
+                                       scalar, scalarA)
+import           Data.Int             (Int32)
+import           Data.List.NonEmpty   (NonEmpty ((:|)))
 import           User.API
 import           User.Types
-import           User.UserEnv           (UserM)
+import           User.UserEnv         (UserM)
+import           Yuntan.Types.OrderBy (desc)
+import           Yuntan.Utils.GraphQL (getValue, value)
 
 schema :: Schema UserM
 schema = user :| [bind, users, total]

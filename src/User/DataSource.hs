@@ -12,28 +12,27 @@ module User.DataSource (
     initGlobalState
   ) where
 
-import           Data.Hashable             (Hashable (..))
-import           Data.Typeable             (Typeable)
-import           Haxl.Core                 (BlockedFetch (..), DataSource,
-                                            DataSourceName, Flags,
-                                            PerformFetch (..), ShowP, State,
-                                            StateKey, StateStore,
-                                            dataSourceName, fetch, putFailure,
-                                            putSuccess, showp, stateEmpty,
-                                            stateSet)
+import           Data.Hashable            (Hashable (..))
+import           Data.Typeable            (Typeable)
+import           Haxl.Core                (BlockedFetch (..), DataSource,
+                                           DataSourceName, Flags,
+                                           PerformFetch (..), ShowP, State,
+                                           StateKey, StateStore, dataSourceName,
+                                           fetch, putFailure, putSuccess, showp,
+                                           stateEmpty, stateSet)
 
-import           Dispatch.Types.ListResult (From, Size)
-import           Dispatch.Types.OrderBy    (OrderBy)
 import           User.DataSource.Bind
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
-import           User.UserEnv              (UserEnv (..))
+import           User.UserEnv             (UserEnv (..))
+import           Yuntan.Types.ListResult  (From, Size)
+import           Yuntan.Types.OrderBy     (OrderBy)
 
-import qualified Control.Exception         (SomeException, bracket_, try)
-import           Data.Int                  (Int64)
-import           Data.Pool                 (withResource)
-import           Database.MySQL.Simple     (Connection)
+import qualified Control.Exception        (SomeException, bracket_, try)
+import           Data.Int                 (Int64)
+import           Data.Pool                (withResource)
+import           Database.MySQL.Simple    (Connection)
 
 import           Control.Concurrent.Async
 import           Control.Concurrent.QSem
@@ -97,16 +96,16 @@ instance DataSourceName UserReq where
   dataSourceName _ = "UserDataSource"
 
 instance DataSource UserEnv UserReq where
-  fetch = dispatchFetch
+  fetch = yuntanFetch
 
-dispatchFetch
+yuntanFetch
   :: State UserReq
   -> Flags
   -> UserEnv
   -> [BlockedFetch UserReq]
   -> PerformFetch
 
-dispatchFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
+yuntanFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
   sem <- newQSem $ numThreads _state
   asyncs <- mapM (fetchAsync sem _user) blockedFetches
   inner
@@ -152,5 +151,5 @@ fetchReq CreateTable               = createTable
 
 
 initGlobalState :: Int -> StateStore
-initGlobalState threads = stateSet dispatchState stateEmpty
-  where dispatchState = UserState threads
+initGlobalState threads = stateSet yuntanState stateEmpty
+  where yuntanState = UserState threads
