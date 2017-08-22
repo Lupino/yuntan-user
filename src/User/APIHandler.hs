@@ -18,6 +18,8 @@ module User.APIHandler
   , removeBindAPIHandler
 
   , graphqlHandler
+  , graphqlByBindHandler
+  , graphqlByUserHandler
   ) where
 
 import           Control.Monad           (void)
@@ -36,7 +38,7 @@ import           Data.Maybe              (fromMaybe)
 import           Data.Text               (pack, unpack)
 
 import           Data.GraphQL            (graphql)
-import           User.GraphQL            (schema)
+import           User.GraphQL            (schema, schemaByBind, schemaByUser)
 
 createUserAPIHandler :: ActionM ()
 createUserAPIHandler = do
@@ -182,8 +184,22 @@ removeBindAPIHandler = do
 resultOK :: ActionM ()
 resultOK = ok "result" ("OK" :: String)
 
-
 graphqlHandler :: ActionM ()
 graphqlHandler = do
   query <- param "query"
   json =<< lift (graphql schema query)
+
+graphqlByBindHandler :: ActionM ()
+graphqlByBindHandler = do
+  name <- param "name"
+  b <- lift (getBindByName name)
+  case b of
+    Nothing -> errNotFound "Bind is not found"
+    Just b' -> do
+      query <- param "query"
+      json =<< lift (graphql (schemaByBind b') query)
+
+graphqlByUserHandler :: User -> ActionM ()
+graphqlByUserHandler u = do
+  query <- param "query"
+  json =<< lift (graphql (schemaByUser u) query)
