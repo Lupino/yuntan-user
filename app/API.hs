@@ -111,7 +111,7 @@ application = do
   get    "/api/graphql/" graphqlHandler
   post   "/api/graphql/" graphqlHandler
 
-  get    "/api/binds/:name/graphql"  graphqlByBindHandler
+  get    "/api/binds/:name/graphql/"  graphqlByBindHandler
   post   "/api/binds/:name/graphql/" graphqlByBindHandler
 
   get    "/api/users/:uidOrName/graphql/" $ requireUser graphqlByUserHandler
