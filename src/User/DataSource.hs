@@ -3,13 +3,12 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 
 module User.DataSource (
     UserReq(..),
-    initGlobalState
+    initUserState
   ) where
 
 import           Data.Hashable            (Hashable (..))
@@ -151,6 +150,5 @@ fetchReq CreateTable               = createTable
 
 
 
-initGlobalState :: Int -> StateStore
-initGlobalState threads = stateSet yuntanState stateEmpty
-  where yuntanState = UserState threads
+initUserState :: Int -> State UserReq
+initUserState = UserState

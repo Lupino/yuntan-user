@@ -14,7 +14,8 @@ import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        settings)
 
 import           Haxl.Core                            (StateStore, initEnv,
-                                                       runHaxl)
+                                                       runHaxl, stateEmpty,
+                                                       stateSet)
 import           User
 import           User.APIHandler
 
@@ -72,7 +73,7 @@ program Options { getConfigFile  = confFile
 
   pool <- C.genMySQLPool mysqlConfig
 
-  let state = initGlobalState mysqlThreads
+  let state = stateSet (initUserState mysqlThreads) stateEmpty
 
   let userEnv = UserEnv { mySQLPool = pool, tablePrefix = prefix }
 
