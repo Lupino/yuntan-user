@@ -24,23 +24,23 @@ module User.API
 
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
-import           Haxl.Core               (dataFetch, uncachedRequest)
+import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
+import           Yuntan.Types.HasMySQL   (HasMySQL)
 
 import           User.DataSource
 import           User.Types
-import           User.UserEnv            (UserM)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy)
 
-createUser         :: UserName -> Password -> UserM UserID
-getUser            :: UserID -> UserM (Maybe User)
-getUserByName      :: UserName -> UserM (Maybe User)
-removeUser         :: UserID -> UserM Int64
-updateUserName     :: UserID -> UserName -> UserM Int64
-updateUserPassword :: UserID -> Password -> UserM Int64
-updateUserExtra    :: UserID -> Extra -> UserM Int64
-getUsers           :: From -> Size -> OrderBy -> UserM [User]
-countUser          :: UserM Int64
+createUser         :: HasMySQL u => UserName -> Password -> GenHaxl u UserID
+getUser            :: HasMySQL u => UserID -> GenHaxl u (Maybe User)
+getUserByName      :: HasMySQL u => UserName -> GenHaxl u (Maybe User)
+removeUser         :: HasMySQL u => UserID -> GenHaxl u Int64
+updateUserName     :: HasMySQL u => UserID -> UserName -> GenHaxl u Int64
+updateUserPassword :: HasMySQL u => UserID -> Password -> GenHaxl u Int64
+updateUserExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
+getUsers           :: HasMySQL u => From -> Size -> OrderBy -> GenHaxl u [User]
+countUser          :: HasMySQL u => GenHaxl u Int64
 
 createUser name passwd        = uncachedRequest (CreateUser name passwd)
 getUser uid                   = fillBinds =<< dataFetch (GetUser uid)
@@ -49,18 +49,18 @@ removeUser uid                = uncachedRequest (RemoveUser uid)
 updateUserName uid name       = uncachedRequest (UpdateUserName uid name)
 updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
 updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
-getUsers from size order      = catMaybes <$> (mapM (\u -> fillBinds (Just u))
+getUsers from size order      = catMaybes <$> (mapM (fillBinds . Just)
                                       =<< dataFetch (GetUsers from size order))
 countUser                     = dataFetch CountUser
 
-createBind         :: UserID -> Service -> ServiceName -> Extra -> UserM BindID
-getBind            :: BindID -> UserM (Maybe Bind)
-getBindByName      :: ServiceName -> UserM (Maybe Bind)
-removeBind         :: BindID -> UserM Int64
-updateBindExtra    :: BindID -> Extra -> UserM Int64
-countBind          :: UserID -> UserM Int64
-getBinds           :: UserID -> UserM [Bind]
-removeBinds        :: UserID -> UserM Int64
+createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
+getBind            :: HasMySQL u => BindID -> GenHaxl u (Maybe Bind)
+getBindByName      :: HasMySQL u => ServiceName -> GenHaxl u (Maybe Bind)
+removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
+updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
+countBind          :: HasMySQL u => UserID -> GenHaxl u Int64
+getBinds           :: HasMySQL u => UserID -> GenHaxl u [Bind]
+removeBinds        :: HasMySQL u => UserID -> GenHaxl u Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
 getBind bid            = dataFetch (GetBind bid)
@@ -71,12 +71,12 @@ countBind uid          = dataFetch (CountBind uid)
 getBinds uid           = dataFetch (GetBinds uid)
 removeBinds uid        = uncachedRequest (RemoveBinds uid)
 
-fillBinds :: Maybe User -> UserM (Maybe User)
-fillBinds (Just u@(User { getUserID = uid })) = do
+fillBinds :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
+fillBinds (Just u@User{getUserID = uid}) = do
   binds <- getBinds uid
   return (Just u { getUserBinds = binds })
 
 fillBinds Nothing = return Nothing
 
-createTable :: UserM Int64
+createTable :: HasMySQL u => GenHaxl u Int64
 createTable = uncachedRequest CreateTable

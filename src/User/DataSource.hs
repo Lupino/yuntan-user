@@ -25,7 +25,7 @@ import           User.DataSource.Bind
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
-import           User.UserEnv             (UserEnv (..))
+import           Yuntan.Types.HasMySQL    (HasMySQL, mysqlPool, tablePrefix)
 import           Yuntan.Types.ListResult  (From, Size)
 import           Yuntan.Types.OrderBy     (OrderBy)
 
@@ -95,27 +95,28 @@ instance StateKey UserReq where
 instance DataSourceName UserReq where
   dataSourceName _ = "UserDataSource"
 
-instance DataSource UserEnv UserReq where
-  fetch = yuntanFetch
+instance HasMySQL u => DataSource u UserReq where
+  fetch = doFetch
 
-yuntanFetch
-  :: State UserReq
+doFetch
+  :: HasMySQL u
+  => State UserReq
   -> Flags
-  -> UserEnv
+  -> u
   -> [BlockedFetch UserReq]
   -> PerformFetch
 
-yuntanFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
+doFetch _state _flags _user blockedFetches = AsyncFetch $ \inner -> do
   sem <- newQSem $ numThreads _state
   asyncs <- mapM (fetchAsync sem _user) blockedFetches
   inner
   mapM_ wait asyncs
 
-fetchAsync :: QSem -> UserEnv -> BlockedFetch UserReq -> IO (Async ())
+fetchAsync :: HasMySQL u => QSem -> u -> BlockedFetch UserReq -> IO (Async ())
 fetchAsync sem env req = async $
   Control.Exception.bracket_ (waitQSem sem) (signalQSem sem) $ withResource pool $ fetchSync req prefix
 
-  where pool   = mySQLPool env
+  where pool   = mysqlPool env
         prefix = tablePrefix env
 
 fetchSync :: BlockedFetch UserReq -> TablePrefix -> Connection -> IO ()
