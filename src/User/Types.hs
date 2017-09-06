@@ -19,7 +19,7 @@ module User.Types
 
 import           Database.MySQL.Simple.QueryResults (QueryResults, convertError,
                                                      convertResults)
-import           Database.MySQL.Simple.Result       (Result, convert)
+import           Database.MySQL.Simple.Result       (convert)
 
 import           Data.Aeson                         (ToJSON (..), Value (..),
                                                      decodeStrict, object, (.=))
@@ -61,7 +61,7 @@ instance QueryResults User where
     where !getUserID        = convert fa va
           !getUserName      = convert fb vb
           !getUserPassword  = convert fc vc
-          !getUserExtra     = convert fd vd
+          !getUserExtra     = fromMaybe Null . decodeStrict $ fromMaybe "{}" vd
           !getUserBinds     = []
           !getUserCreatedAt = convert fe ve
   convertResults fs vs  = convertError fs vs 2
@@ -73,7 +73,7 @@ instance QueryResults Bind where
           !getBindUid       = convert fb vb
           !getBindService   = convert fc vc
           !getBindName      = convert fd vd
-          !getBindExtra     = convert fe ve
+          !getBindExtra     = fromMaybe Null . decodeStrict $ fromMaybe "{}" ve
           !getBindCreatedAt = convert ff vf
   convertResults fs vs  = convertError fs vs 2
 
@@ -93,7 +93,3 @@ instance ToJSON Bind where
                            , "extra"      .= getBindExtra
                            , "created_at" .= getBindCreatedAt
                            ]
-
-instance Result Value where
-  convert _ (Just bs) = fromMaybe Null (decodeStrict bs)
-  convert _ Nothing   = Null
