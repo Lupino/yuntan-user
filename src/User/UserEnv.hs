@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module User.UserEnv
   (
     UserEnv (..)

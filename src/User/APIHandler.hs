@@ -54,7 +54,7 @@ createUserAPIHandler = do
       json =<< lift (getUser uid)
 
 verifyPasswordAPIHandler :: User -> ActionM ()
-verifyPasswordAPIHandler (User { getUserPassword = pwd }) = do
+verifyPasswordAPIHandler User{getUserPassword = pwd} = do
   valid <- flip isVaildPassword (unpack pwd) <$> param "passwd"
   if valid then resultOK
            else errorInvalidPassword
@@ -89,7 +89,7 @@ apiUser = do
   user <- lift $ getUserByName (pack name)
   case user of
     Just u -> return $ Just u
-    Nothing -> do
+    Nothing ->
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
 
@@ -107,13 +107,13 @@ requireUser act = do
         errorUserNotFound = errNotFound "User is not found."
 
 removeUserAPIHandler :: User -> ActionM ()
-removeUserAPIHandler (User { getUserID = uid }) = do
+removeUserAPIHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBinds uid
   resultOK
 
 updateUserNameAPIHandler :: User -> ActionM ()
-updateUserNameAPIHandler (User { getUserID = uid }) = do
+updateUserNameAPIHandler User{getUserID = uid} = do
   name <- param "username"
   case (isDigest name, isValidUserName name) of
     (True, _) -> errorInvalidUserName'
@@ -123,13 +123,13 @@ updateUserNameAPIHandler (User { getUserID = uid }) = do
       resultOK
 
 updateUserPasswordAPIHandler :: User -> ActionM ()
-updateUserPasswordAPIHandler (User { getUserID = uid }) = do
+updateUserPasswordAPIHandler User{getUserID = uid} = do
   passwd <- pack . hashPassword <$> param "passwd"
   void . lift $ updateUserPassword uid passwd
   resultOK
 
 updateUserExtraAPIHandler :: User -> ActionM ()
-updateUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
+updateUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
@@ -139,14 +139,14 @@ errorExtraRequired :: ActionM ()
 errorExtraRequired = errBadRequest "extra field is required."
 
 removeUserExtraAPIHandler :: User -> ActionM ()
-removeUserExtraAPIHandler (User { getUserID = uid, getUserExtra = oev }) = do
+removeUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
 clearUserExtraAPIHandler :: User -> ActionM ()
-clearUserExtraAPIHandler (User { getUserID = uid }) = do
+clearUserExtraAPIHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
 getUsersAPIHandler :: ActionM ()
@@ -163,7 +163,7 @@ getUsersAPIHandler = do
                                   }
 
 createBindAPIHandler :: User -> ActionM ()
-createBindAPIHandler (User { getUserID = uid }) = do
+createBindAPIHandler User{getUserID = uid} = do
   service <- param "service"
   name <- param "name"
   extra <- decode <$> (param "extra" `rescue` (\_ -> return "null"))
