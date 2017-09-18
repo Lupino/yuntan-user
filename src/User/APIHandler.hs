@@ -27,10 +27,11 @@ import           Control.Monad.Reader    (lift)
 
 import           User
 import           Web.Scotty.Trans        (json, param, rescue)
+import           Yuntan.Types.HasMySQL   (HasMySQL)
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Utils.JSON       (differenceValue, unionValue)
-import           Yuntan.Utils.Scotty     (errBadRequest, errNotFound,
+import           Yuntan.Utils.Scotty     (ActionH, errBadRequest, errNotFound,
                                           maybeNotFound, ok, okListResult)
 
 import           Data.Aeson              (Value (..), decode)
@@ -40,7 +41,7 @@ import           Data.Text               (pack, unpack)
 import           Data.GraphQL            (graphql)
 import           User.GraphQL            (schema, schemaByBind, schemaByUser)
 
-createUserAPIHandler :: ActionM ()
+createUserAPIHandler :: HasMySQL u => ActionH u ()
 createUserAPIHandler = do
   name <- param "username"
   passwd <- hashPassword <$> param "passwd"
@@ -53,19 +54,19 @@ createUserAPIHandler = do
       uid <- lift $ createUser (pack name) (pack passwd)
       json =<< lift (getUser uid)
 
-verifyPasswordAPIHandler :: User -> ActionM ()
+verifyPasswordAPIHandler :: HasMySQL u => User -> ActionH u ()
 verifyPasswordAPIHandler User{getUserPassword = pwd} = do
   valid <- flip isVaildPassword (unpack pwd) <$> param "passwd"
   if valid then resultOK
            else errorInvalidPassword
 
-errorInvalidPassword :: ActionM ()
+errorInvalidPassword :: HasMySQL u => ActionH u ()
 errorInvalidPassword = errBadRequest "invalid password"
 
-errorInvalidUserName :: ActionM ()
+errorInvalidUserName :: HasMySQL u => ActionH u ()
 errorInvalidUserName = errBadRequest $ "invalid username, the valid username char is " ++ validUserName
 
-errorInvalidUserName' :: ActionM ()
+errorInvalidUserName' :: HasMySQL u => ActionH u ()
 errorInvalidUserName' = errBadRequest "invalid username, the valid username need one or more char which is not a number."
 
 validUserName :: String
@@ -83,7 +84,7 @@ isDigest (x:xs) | x `elem` ['0'..'9'] = isDigest xs
 
 isDigest [] = True
 
-apiUser :: ActionM (Maybe User)
+apiUser :: HasMySQL u => ActionH u (Maybe User)
 apiUser = do
   name <- param "uidOrName"
   user <- lift $ getUserByName (pack name)
@@ -93,26 +94,26 @@ apiUser = do
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
 
-getUserAPIHandler :: User -> ActionM ()
+getUserAPIHandler :: HasMySQL u => User -> ActionH u ()
 getUserAPIHandler = json
 
-requireUser :: (User -> ActionM()) -> ActionM ()
+requireUser :: HasMySQL u => (User -> ActionH u ()) -> ActionH u ()
 requireUser act = do
   user <- apiUser
   case user of
     Just u  -> act u
     Nothing ->  errorUserNotFound
 
-  where errorUserNotFound :: ActionM ()
+  where errorUserNotFound :: HasMySQL u => ActionH u ()
         errorUserNotFound = errNotFound "User is not found."
 
-removeUserAPIHandler :: User -> ActionM ()
+removeUserAPIHandler :: HasMySQL u => User -> ActionH u ()
 removeUserAPIHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBinds uid
   resultOK
 
-updateUserNameAPIHandler :: User -> ActionM ()
+updateUserNameAPIHandler :: HasMySQL u => User -> ActionH u ()
 updateUserNameAPIHandler User{getUserID = uid} = do
   name <- param "username"
   case (isDigest name, isValidUserName name) of
@@ -122,34 +123,34 @@ updateUserNameAPIHandler User{getUserID = uid} = do
       void . lift $ updateUserName uid (pack name)
       resultOK
 
-updateUserPasswordAPIHandler :: User -> ActionM ()
+updateUserPasswordAPIHandler :: HasMySQL u => User -> ActionH u ()
 updateUserPasswordAPIHandler User{getUserID = uid} = do
   passwd <- pack . hashPassword <$> param "passwd"
   void . lift $ updateUserPassword uid passwd
   resultOK
 
-updateUserExtraAPIHandler :: User -> ActionM ()
+updateUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
 updateUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
-errorExtraRequired :: ActionM ()
+errorExtraRequired :: HasMySQL u => ActionH u ()
 errorExtraRequired = errBadRequest "extra field is required."
 
-removeUserExtraAPIHandler :: User -> ActionM ()
+removeUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
 removeUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
-clearUserExtraAPIHandler :: User -> ActionM ()
+clearUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
 clearUserExtraAPIHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
-getUsersAPIHandler :: ActionM ()
+getUsersAPIHandler :: HasMySQL u => ActionH u ()
 getUsersAPIHandler = do
   from <- param "from" `rescue` (\_ -> return (0::From))
   size <- param "size" `rescue` (\_ -> return (10::Size))
@@ -162,7 +163,7 @@ getUsersAPIHandler = do
                                   , getResult = users
                                   }
 
-createBindAPIHandler :: User -> ActionM ()
+createBindAPIHandler :: HasMySQL u => User -> ActionH u ()
 createBindAPIHandler User{getUserID = uid} = do
   service <- param "service"
   name <- param "name"
@@ -170,26 +171,26 @@ createBindAPIHandler User{getUserID = uid} = do
   bid <- lift $ createBind uid service name $ fromMaybe Null extra
   json =<< lift (getBind bid)
 
-getBindAPIHandler :: ActionM ()
+getBindAPIHandler :: HasMySQL u => ActionH u ()
 getBindAPIHandler = do
   name <- param "name"
   maybeNotFound "Bind" =<< lift (getBindByName name)
 
-removeBindAPIHandler :: ActionM ()
+removeBindAPIHandler :: HasMySQL u => ActionH u ()
 removeBindAPIHandler = do
   bid <- param "bind_id"
   void . lift $ removeBind bid
   resultOK
 
-resultOK :: ActionM ()
+resultOK :: ActionH u ()
 resultOK = ok "result" ("OK" :: String)
 
-graphqlHandler :: ActionM ()
+graphqlHandler :: HasMySQL u => ActionH u ()
 graphqlHandler = do
   query <- param "query"
   json =<< lift (graphql schema query)
 
-graphqlByBindHandler :: ActionM ()
+graphqlByBindHandler :: HasMySQL u => ActionH u ()
 graphqlByBindHandler = do
   name <- param "name"
   b <- lift (getBindByName name)
@@ -199,7 +200,7 @@ graphqlByBindHandler = do
       query <- param "query"
       json =<< lift (graphql (schemaByBind b') query)
 
-graphqlByUserHandler :: User -> ActionM ()
+graphqlByUserHandler :: HasMySQL u => User -> ActionH u ()
 graphqlByUserHandler u = do
   query <- param "query"
   json =<< lift (graphql (schemaByUser u) query)

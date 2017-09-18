@@ -12,6 +12,8 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
+import           Yuntan.Types.HasMySQL                (HasMySQL)
+import           Yuntan.Utils.Scotty                  (ScottyH)
 
 import           Haxl.Core                            (StateStore, initEnv,
                                                        runHaxl, stateEmpty,
@@ -88,7 +90,7 @@ program Options { getConfigFile  = confFile
           env0 <- initEnv s env
           runHaxl env0 m
 
-application :: ScottyM ()
+application :: HasMySQL u => ScottyH u ()
 application = do
   middleware logStdout
 
