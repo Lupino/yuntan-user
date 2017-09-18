@@ -17,7 +17,6 @@ library
   hs-source-dirs:      src
   exposed-modules:     User
                      , User.Types
-                     , User.UserEnv
                      , User.DataSource
                      , User.DataSource.User
                      , User.DataSource.Bind

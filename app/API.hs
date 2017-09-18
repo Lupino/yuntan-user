@@ -12,12 +12,12 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Types.HasMySQL                (HasMySQL)
+import           Yuntan.Types.HasMySQL                (HasMySQL, simpleEnv)
 import           Yuntan.Utils.Scotty                  (ScottyH)
 
-import           Haxl.Core                            (StateStore, initEnv,
-                                                       runHaxl, stateEmpty,
-                                                       stateSet)
+import           Haxl.Core                            (GenHaxl, StateStore,
+                                                       initEnv, runHaxl,
+                                                       stateEmpty, stateSet)
 import           User
 import           User.APIHandler
 
@@ -77,15 +77,15 @@ program Options { getConfigFile  = confFile
 
   let state = stateSet (initUserState mysqlThreads) stateEmpty
 
-  let userEnv = UserEnv { mySQLPool = pool, tablePrefix = prefix }
+  let u = simpleEnv pool prefix
 
   let opts = def { settings = setPort port
                             $ setHost (Host host) (settings def) }
 
-  _ <- runIO userEnv state createTable
-  scottyOptsT opts (runIO userEnv state) application
+  _ <- runIO u state createTable
+  scottyOptsT opts (runIO u state) application
   where
-        runIO :: UserEnv -> StateStore -> UserM b -> IO b
+        runIO :: HasMySQL u => u -> StateStore -> GenHaxl u b -> IO b
         runIO env s m = do
           env0 <- initEnv s env
           runHaxl env0 m
