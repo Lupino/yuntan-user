@@ -60,13 +60,13 @@ verifyPasswordAPIHandler User{getUserPassword = pwd} = do
   if valid then resultOK
            else errorInvalidPassword
 
-errorInvalidPassword :: HasMySQL u => ActionH u ()
+errorInvalidPassword :: ActionH u ()
 errorInvalidPassword = errBadRequest "invalid password"
 
-errorInvalidUserName :: HasMySQL u => ActionH u ()
+errorInvalidUserName :: ActionH u ()
 errorInvalidUserName = errBadRequest $ "invalid username, the valid username char is " ++ validUserName
 
-errorInvalidUserName' :: HasMySQL u => ActionH u ()
+errorInvalidUserName' :: ActionH u ()
 errorInvalidUserName' = errBadRequest "invalid username, the valid username need one or more char which is not a number."
 
 validUserName :: String
@@ -94,7 +94,7 @@ apiUser = do
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
 
-getUserAPIHandler :: HasMySQL u => User -> ActionH u ()
+getUserAPIHandler :: User -> ActionH u ()
 getUserAPIHandler = json
 
 requireUser :: HasMySQL u => (User -> ActionH u ()) -> ActionH u ()
@@ -104,7 +104,7 @@ requireUser act = do
     Just u  -> act u
     Nothing ->  errorUserNotFound
 
-  where errorUserNotFound :: HasMySQL u => ActionH u ()
+  where errorUserNotFound :: ActionH u ()
         errorUserNotFound = errNotFound "User is not found."
 
 removeUserAPIHandler :: HasMySQL u => User -> ActionH u ()
@@ -136,7 +136,7 @@ updateUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
     Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
-errorExtraRequired :: HasMySQL u => ActionH u ()
+errorExtraRequired :: ActionH u ()
 errorExtraRequired = errBadRequest "extra field is required."
 
 removeUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
