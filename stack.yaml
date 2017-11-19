@@ -39,7 +39,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/Lupino/yuntan-common.git
-    commit: f89052fa7c0a0a8f59b67707cbaf2d6da6dc8991
+    commit: b17dde04a4ade852385213118d71ac78fedae659
   extra-dep: true
 - location:
     git: https://github.com/jdnavarro/graphql-haskell.git
@@ -55,6 +55,7 @@ flags:
     graphql-utils: true
     mysql-config: true
     scotty-utils: true
+    scotty-type: true
     order-by-type: true
 
 # Extra package databases containing global packages

@@ -13,7 +13,7 @@ import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
 import           Yuntan.Types.HasMySQL                (HasMySQL, simpleEnv)
-import           Yuntan.Utils.Scotty                  (ScottyH)
+import           Yuntan.Types.Scotty                  (ScottyH)
 
 import           Haxl.Core                            (GenHaxl, StateStore,
                                                        initEnv, runHaxl,
