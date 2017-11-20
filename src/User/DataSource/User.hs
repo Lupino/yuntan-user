@@ -14,8 +14,9 @@ module User.DataSource.User
   ) where
 
 import           Control.Monad           (void)
-import           Database.MySQL.Simple   (Connection, Only (..), execute,
-                                          insertID, query, query_)
+import           Database.MySQL.Simple   (Only (..), execute, insertID, query,
+                                          query_)
+import           Yuntan.Types.HasMySQL   (MySQL)
 
 import           Data.Aeson              (encode)
 import           Data.Int                (Int64)
@@ -27,7 +28,7 @@ import           User.Types
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy)
 
-createUser :: UserName -> Password -> TablePrefix -> Connection -> IO UserID
+createUser :: UserName -> Password -> MySQL UserID
 createUser name passwd prefix conn = do
   t <- getUnixTime
   void $ execute conn sql (name, passwd, show $ toEpochTime t)
@@ -39,34 +40,34 @@ createUser name passwd prefix conn = do
                                   , "(?, ?, ?)"
                                   ]
 
-getUser :: UserID -> TablePrefix -> Connection -> IO (Maybe User)
+getUser :: UserID -> MySQL (Maybe User)
 getUser uid prefix conn = listToMaybe <$> query conn sql (Only uid)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` WHERE `id`=?"]
 
-getUserByName :: UserName -> TablePrefix -> Connection -> IO (Maybe User)
+getUserByName :: UserName -> MySQL (Maybe User)
 getUserByName name prefix conn = listToMaybe <$> query conn sql (Only name)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` WHERE `username`=?"]
 
-removeUser :: UserID -> TablePrefix -> Connection -> IO Int64
+removeUser :: UserID -> MySQL Int64
 removeUser uid prefix conn = execute conn sql (Only uid)
   where sql = fromString $ concat [ "DELETE FROM `", prefix, "_users` WHERE `id`=?"]
 
-updateUserName :: UserID -> UserName -> TablePrefix -> Connection -> IO Int64
+updateUserName :: UserID -> UserName -> MySQL Int64
 updateUserName uid name prefix conn = execute conn sql (name, uid)
   where sql = fromString $ concat [ "UPDATE `", prefix, "_users` SET `username` = ? WHERE `id`=?"]
 
-updateUserPassword :: UserID -> Password -> TablePrefix -> Connection -> IO Int64
+updateUserPassword :: UserID -> Password -> MySQL Int64
 updateUserPassword uid passwd prefix conn = execute conn sql (passwd, uid)
   where sql = fromString $ concat [ "UPDATE `", prefix, "_users` SET `password` = ? WHERE `id`=?"]
 
-updateUserExtra :: UserID -> Extra -> TablePrefix -> Connection -> IO Int64
+updateUserExtra :: UserID -> Extra -> MySQL Int64
 updateUserExtra uid extra prefix conn = execute conn sql (encode extra, uid)
   where sql = fromString $ concat [ "UPDATE `", prefix, "_users` SET `extra` = ? WHERE `id`=?"]
 
-countUser :: TablePrefix -> Connection -> IO Int64
+countUser :: MySQL Int64
 countUser prefix conn = maybe 0 fromOnly . listToMaybe <$> query_ conn sql
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_users`" ]
 
-getUsers :: From -> Size -> OrderBy -> TablePrefix -> Connection -> IO [User]
+getUsers :: From -> Size -> OrderBy -> MySQL [User]
 getUsers from size o prefix conn = query conn sql (from, size)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` ", show o, " LIMIT ?,?" ]

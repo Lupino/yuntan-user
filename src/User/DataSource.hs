@@ -16,22 +16,21 @@ import           Data.Typeable            (Typeable)
 import           Haxl.Core                (BlockedFetch (..), DataSource,
                                            DataSourceName, Flags,
                                            PerformFetch (..), ShowP, State,
-                                           StateKey, StateStore, dataSourceName,
-                                           fetch, putFailure, putSuccess, showp,
-                                           stateEmpty, stateSet)
+                                           StateKey, dataSourceName, fetch,
+                                           putFailure, putSuccess, showp)
 
 import           User.DataSource.Bind
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
-import           Yuntan.Types.HasMySQL    (HasMySQL, mysqlPool, tablePrefix)
+import           Yuntan.Types.HasMySQL    (HasMySQL, MySQL, mysqlPool,
+                                           tablePrefix)
 import           Yuntan.Types.ListResult  (From, Size)
 import           Yuntan.Types.OrderBy     (OrderBy)
 
 import qualified Control.Exception        (SomeException, bracket_, try)
 import           Data.Int                 (Int64)
 import           Data.Pool                (withResource)
-import           Database.MySQL.Simple    (Connection)
 
 import           Control.Concurrent.Async
 import           Control.Concurrent.QSem
@@ -58,7 +57,7 @@ data UserReq a where
   GetBinds           :: UserID -> UserReq [Bind]
   RemoveBinds        :: UserID -> UserReq Int64
 
-  CreateTable        :: UserReq Int64
+  MergeData          :: UserReq ()
 
   deriving (Typeable)
 
@@ -83,7 +82,7 @@ instance Hashable (UserReq a) where
   hashWithSalt s (GetBinds uid)           = hashWithSalt s (16::Int, uid)
   hashWithSalt s (RemoveBinds uid)        = hashWithSalt s (17::Int, uid)
 
-  hashWithSalt s CreateTable              = hashWithSalt s (20::Int)
+  hashWithSalt s MergeData              = hashWithSalt s (20::Int)
 
 deriving instance Show (UserReq a)
 instance ShowP UserReq where showp = show
@@ -118,14 +117,14 @@ fetchAsync sem env req = async $
   where pool   = mysqlPool env
         prefix = tablePrefix env
 
-fetchSync :: BlockedFetch UserReq -> TablePrefix -> Connection -> IO ()
+fetchSync :: BlockedFetch UserReq -> MySQL ()
 fetchSync (BlockedFetch req rvar) prefix conn = do
   e <- Control.Exception.try $ fetchReq req prefix conn
   case e of
     Left ex -> putFailure rvar (ex :: Control.Exception.SomeException)
     Right a -> putSuccess rvar a
 
-fetchReq :: UserReq a -> TablePrefix -> Connection -> IO a
+fetchReq :: UserReq a -> MySQL a
 fetchReq  (CreateUser n h)         = createUser n h
 fetchReq  (GetUser k)              = getUser k
 fetchReq  (GetUserByName k)        = getUserByName k
@@ -145,7 +144,7 @@ fetchReq (CountBind uid)           = countBind uid
 fetchReq (GetBinds uid)            = getBinds uid
 fetchReq (RemoveBinds uid)         = removeBinds uid
 
-fetchReq CreateTable               = createTable
+fetchReq MergeData                 = mergeData
 
 
 

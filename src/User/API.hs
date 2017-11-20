@@ -19,7 +19,7 @@ module User.API
   , getBinds
   , removeBinds
 
-  , createTable
+  , mergeData
   ) where
 
 import           Data.Int                (Int64)
@@ -78,5 +78,5 @@ fillBinds (Just u@User{getUserID = uid}) = do
 
 fillBinds Nothing = return Nothing
 
-createTable :: HasMySQL u => GenHaxl u Int64
-createTable = uncachedRequest CreateTable
+mergeData :: HasMySQL u => GenHaxl u ()
+mergeData = uncachedRequest MergeData
