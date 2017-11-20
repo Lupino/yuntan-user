@@ -37,6 +37,7 @@ import           Yuntan.Utils.GraphQL  (getValue, value)
 --  name: String
 --  extra: Extra
 --  binds: [Bind]
+--  groups: [String]
 --  created_at: Int
 -- }
 -- type Bind {
@@ -73,6 +74,7 @@ user_ User{..} = [ scalar "id"         getUserID
                  , scalar "name"       getUserName
                  , value  "extra"      getUserExtra
                  , array  "binds"      $ map bind_ getUserBinds
+                 , scalar "groups"     getUserGroups
                  , scalar "created_at" getUserCreatedAt
                  ]
 

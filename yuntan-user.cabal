@@ -21,6 +21,7 @@ library
                      , User.DataSource.User
                      , User.DataSource.Bind
                      , User.DataSource.Table
+                     , User.DataSource.Group
                      , User.API
 
                      , User.APIHandler

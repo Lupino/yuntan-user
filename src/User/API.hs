@@ -20,10 +20,19 @@ module User.API
   , removeBinds
 
   , mergeData
+
+  , addGroup
+  , removeGroup
+  , removeGroupListByUserID
+  , getUserIDListByGroup
+  , getGroupListByUserID
+  , getUserListByGroup
+  , countGroup
   ) where
 
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
+import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
 import           Yuntan.Types.HasMySQL   (HasMySQL)
 
@@ -43,14 +52,16 @@ getUsers           :: HasMySQL u => From -> Size -> OrderBy -> GenHaxl u [User]
 countUser          :: HasMySQL u => GenHaxl u Int64
 
 createUser name passwd        = uncachedRequest (CreateUser name passwd)
-getUser uid                   = fillBinds =<< dataFetch (GetUser uid)
-getUserByName name            = fillBinds =<< dataFetch (GetUserByName name)
+getUser uid                   = fillGroups =<< fillBinds =<< dataFetch (GetUser uid)
+getUserByName name            = fillGroups =<< fillBinds =<< dataFetch (GetUserByName name)
 removeUser uid                = uncachedRequest (RemoveUser uid)
 updateUserName uid name       = uncachedRequest (UpdateUserName uid name)
 updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
 updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
-getUsers from size order      = catMaybes <$> (mapM (fillBinds . Just)
-                                      =<< dataFetch (GetUsers from size order))
+getUsers from size order      = do
+  users <- dataFetch (GetUsers from size order)
+  catMaybes <$> (for users $ \user -> fillGroups =<< fillBinds (Just user))
+
 countUser                     = dataFetch CountUser
 
 createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
@@ -80,3 +91,29 @@ fillBinds Nothing = return Nothing
 
 mergeData :: HasMySQL u => GenHaxl u ()
 mergeData = uncachedRequest MergeData
+
+addGroup                :: HasMySQL u => GroupName -> UserID -> GenHaxl u ()
+removeGroup             :: HasMySQL u => String -> UserID -> GenHaxl u Int64
+getGroupListByUserID    :: HasMySQL u => UserID -> GenHaxl u [GroupName]
+getUserIDListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [UserID]
+removeGroupListByUserID :: HasMySQL u => UserID -> GenHaxl u Int64
+countGroup              :: HasMySQL u => GroupName -> GenHaxl u Int64
+
+addGroup n uid               = uncachedRequest (AddGroup n uid)
+removeGroup n uid            = uncachedRequest (RemoveGroup n uid)
+getGroupListByUserID uid     = dataFetch (GetGroupListByUserID uid)
+getUserIDListByGroup n f s o = dataFetch (GetUserIDListByGroup n f s o)
+removeGroupListByUserID uid  = uncachedRequest (RemoveGroupListByUserID uid)
+countGroup n                 = dataFetch (CountGroup n)
+
+fillGroups :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
+fillGroups (Just u@User{getUserID = uid}) = do
+  groups <- getGroupListByUserID uid
+  return (Just u { getUserGroups = groups })
+
+fillGroups Nothing = return Nothing
+
+getUserListByGroup :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [User]
+getUserListByGroup group f s o = do
+  uids <- getUserIDListByGroup group f s o
+  catMaybes <$> for uids getUser

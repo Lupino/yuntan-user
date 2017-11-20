@@ -20,6 +20,7 @@ import           Haxl.Core                (BlockedFetch (..), DataSource,
                                            putFailure, putSuccess, showp)
 
 import           User.DataSource.Bind
+import           User.DataSource.Group
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
@@ -59,6 +60,13 @@ data UserReq a where
 
   MergeData          :: UserReq ()
 
+  AddGroup                :: GroupName -> UserID -> UserReq ()
+  RemoveGroup             :: String -> UserID -> UserReq Int64
+  GetGroupListByUserID    :: UserID -> UserReq [GroupName]
+  GetUserIDListByGroup    :: GroupName -> From -> Size -> OrderBy -> UserReq [UserID]
+  RemoveGroupListByUserID :: UserID -> UserReq Int64
+  CountGroup              :: GroupName -> UserReq Int64
+
   deriving (Typeable)
 
 deriving instance Eq (UserReq a)
@@ -82,7 +90,14 @@ instance Hashable (UserReq a) where
   hashWithSalt s (GetBinds uid)           = hashWithSalt s (16::Int, uid)
   hashWithSalt s (RemoveBinds uid)        = hashWithSalt s (17::Int, uid)
 
-  hashWithSalt s MergeData              = hashWithSalt s (20::Int)
+  hashWithSalt s MergeData                = hashWithSalt s (20::Int)
+
+  hashWithSalt s (AddGroup n uid)                = hashWithSalt s (21::Int, n, uid)
+  hashWithSalt s (RemoveGroup n uid)             = hashWithSalt s (22::Int, n, uid)
+  hashWithSalt s (GetGroupListByUserID uid)      = hashWithSalt s (23::Int, uid)
+  hashWithSalt s (GetUserIDListByGroup n f si o) = hashWithSalt s (24::Int, n, f, si, o)
+  hashWithSalt s (RemoveGroupListByUserID uid)   = hashWithSalt s (25::Int, uid)
+  hashWithSalt s (CountGroup n)                  = hashWithSalt s (26::Int, n)
 
 deriving instance Show (UserReq a)
 instance ShowP UserReq where showp = show
@@ -125,28 +140,33 @@ fetchSync (BlockedFetch req rvar) prefix conn = do
     Right a -> putSuccess rvar a
 
 fetchReq :: UserReq a -> MySQL a
-fetchReq  (CreateUser n h)         = createUser n h
-fetchReq  (GetUser k)              = getUser k
-fetchReq  (GetUserByName k)        = getUserByName k
-fetchReq  (RemoveUser k)           = removeUser k
-fetchReq  (UpdateUserName k s)     = updateUserName k s
-fetchReq  (UpdateUserPassword k p) = updateUserPassword k  p
-fetchReq  (UpdateUserExtra k e)    = updateUserExtra k e
-fetchReq  (GetUsers f s o)         = getUsers f s o
-fetchReq  CountUser                = countUser
+fetchReq  (CreateUser n h)              = createUser n h
+fetchReq  (GetUser k)                   = getUser k
+fetchReq  (GetUserByName k)             = getUserByName k
+fetchReq  (RemoveUser k)                = removeUser k
+fetchReq  (UpdateUserName k s)          = updateUserName k s
+fetchReq  (UpdateUserPassword k p)      = updateUserPassword k  p
+fetchReq  (UpdateUserExtra k e)         = updateUserExtra k e
+fetchReq  (GetUsers f s o)              = getUsers f s o
+fetchReq  CountUser                     = countUser
 
-fetchReq (CreateBind uid se n ex)  = createBind uid se n ex
-fetchReq (GetBind bid)             = getBind bid
-fetchReq (GetBindByName n)         = getBindByName n
-fetchReq (RemoveBind bid)          = removeBind bid
-fetchReq (UpdateBindExtra bid ex)  = updateBindExtra bid ex
-fetchReq (CountBind uid)           = countBind uid
-fetchReq (GetBinds uid)            = getBinds uid
-fetchReq (RemoveBinds uid)         = removeBinds uid
+fetchReq (CreateBind uid se n ex)       = createBind uid se n ex
+fetchReq (GetBind bid)                  = getBind bid
+fetchReq (GetBindByName n)              = getBindByName n
+fetchReq (RemoveBind bid)               = removeBind bid
+fetchReq (UpdateBindExtra bid ex)       = updateBindExtra bid ex
+fetchReq (CountBind uid)                = countBind uid
+fetchReq (GetBinds uid)                 = getBinds uid
+fetchReq (RemoveBinds uid)              = removeBinds uid
 
-fetchReq MergeData                 = mergeData
+fetchReq MergeData                      = mergeData
 
-
+fetchReq (AddGroup n uid)               = addGroup n uid
+fetchReq (RemoveGroup n uid)            = removeGroup n uid
+fetchReq (GetGroupListByUserID uid)     = getGroupListByUserID uid
+fetchReq (GetUserIDListByGroup n f s o) = getUserIDListByGroup n f s o
+fetchReq (RemoveGroupListByUserID uid)  = removeGroupListByUserID uid
+fetchReq (CountGroup n)                 = countGroup n
 
 
 initUserState :: Int -> State UserReq

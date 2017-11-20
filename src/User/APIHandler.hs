@@ -17,6 +17,10 @@ module User.APIHandler
   , getBindAPIHandler
   , removeBindAPIHandler
 
+  , createGroupAPIHandler
+  , removeGroupAPIHandler
+  , getUserListByGroupAPIHandler
+
   , graphqlHandler
   , graphqlByBindHandler
   , graphqlByUserHandler
@@ -25,6 +29,8 @@ module User.APIHandler
 import           Control.Monad           (void)
 import           Control.Monad.Reader    (lift)
 
+import           Data.Int                (Int64)
+import           Haxl.Core               (GenHaxl)
 import           User
 import           Web.Scotty.Trans        (json, param, rescue)
 import           Yuntan.Types.HasMySQL   (HasMySQL)
@@ -112,6 +118,7 @@ removeUserAPIHandler :: HasMySQL u => User -> ActionH u ()
 removeUserAPIHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBinds uid
+  void . lift $ removeGroupListByUserID uid
   resultOK
 
 updateUserNameAPIHandler :: HasMySQL u => User -> ActionH u ()
@@ -151,13 +158,24 @@ clearUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
 clearUserExtraAPIHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
+
+flip' :: (a -> b -> c -> d) -> c -> a -> b -> d
+flip' f c a b = f a b c
+
 getUsersAPIHandler :: HasMySQL u => ActionH u ()
-getUsersAPIHandler = do
+getUsersAPIHandler = userListAPIHandler countUser (flip' getUsers (desc "id"))
+
+getUserListByGroupAPIHandler :: HasMySQL u => ActionH u ()
+getUserListByGroupAPIHandler = do
+  group <- param "group"
+  userListAPIHandler (countGroup group) (flip' (getUserListByGroup group) (desc "user_id"))
+
+userListAPIHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [User]) ->  ActionH u ()
+userListAPIHandler count userList = do
   from <- param "from" `rescue` (\_ -> return (0::From))
   size <- param "size" `rescue` (\_ -> return (10::Size))
-  total <- lift countUser
-  users <- lift $ getUsers from size $ desc "id"
-
+  total <- lift count
+  users <- lift $ userList from size
   okListResult "users" ListResult { getFrom   = from
                                   , getSize   = size
                                   , getTotal  = total
@@ -181,6 +199,18 @@ removeBindAPIHandler :: HasMySQL u => ActionH u ()
 removeBindAPIHandler = do
   bid <- param "bind_id"
   void . lift $ removeBind bid
+  resultOK
+
+createGroupAPIHandler :: HasMySQL u => User -> ActionH u ()
+createGroupAPIHandler User{getUserID = uid}= do
+  group <- param "group"
+  lift $ addGroup group uid
+  resultOK
+
+removeGroupAPIHandler :: HasMySQL u => User -> ActionH u ()
+removeGroupAPIHandler User{getUserID = uid} = do
+  group <- param "group"
+  void . lift $ removeGroup group uid
   resultOK
 
 resultOK :: ActionH u ()

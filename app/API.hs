@@ -108,6 +108,10 @@ application = do
 
   post   "/api/users/:uidOrName/binds"       $ requireUser createBindAPIHandler
 
+  post   "/api/groups/:group/:uidOrName/"    $ requireUser createGroupAPIHandler
+  delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupAPIHandler
+  get    "/api/groups/:group/"               getUserListByGroupAPIHandler
+
   get    "/api/binds/"                       getBindAPIHandler
   delete "/api/binds/:bind_id"               removeBindAPIHandler
 
