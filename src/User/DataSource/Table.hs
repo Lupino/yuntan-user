@@ -48,10 +48,18 @@ createGroupTable prefix conn = void $ execute_ conn sql
                                   , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
                                   ]
 
+updateTable_1511230647 :: MySQL ()
+updateTable_1511230647 prefix conn =
+  void $ execute_ conn . fromString $ concat
+    [ "ALTER TABLE `", prefix, "_groups`"
+    , " MODIFY COLUMN `group` varchar(128) NOT NULL"
+    ]
+
 versionList :: VersionList
 versionList =
   [ (1, [createUserTable, createBindTable])
   , (2, [createGroupTable])
+  , (3, [updateTable_1511230647])
   ]
 
 mergeData :: MySQL ()
