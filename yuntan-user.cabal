@@ -44,7 +44,13 @@ library
                      , cryptohash
                      , hex
 
-                     , yuntan-common
+                     , yuntan-common-scotty
+                     , yuntan-common-scotty-type
+                     , yuntan-common-json
+                     , yuntan-common-list-result
+                     , yuntan-common-order
+                     , yuntan-common-config-mysql
+                     , yuntan-common-graphql
                      , graphql
   default-language:    Haskell2010
 
@@ -63,7 +69,8 @@ executable yuntan-user
                      , data-default-class
                      , yaml
                      , text
-                     , yuntan-common
+                     , yuntan-common-scotty-type
+                     , yuntan-common-config-mysql
   default-language:    Haskell2010
 
 source-repository head
