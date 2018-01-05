@@ -9,21 +9,22 @@ module User.GraphQL
   , schemaByBind
   ) where
 
-import           Control.Applicative   (Alternative (..))
-import           Data.GraphQL.AST      (Name)
-import           Data.GraphQL.Schema   (Argument (..), Resolver, Schema,
-                                        Value (..), array, arrayA', object',
-                                        objectA', scalar, scalarA)
-import           Data.Int              (Int32)
-import           Data.List.NonEmpty    (NonEmpty ((:|)), fromList)
-import           Data.Maybe            (fromMaybe)
-import           Data.Text             (Text)
-import           Haxl.Core             (GenHaxl)
+import           Control.Applicative     (Alternative (..))
+import           Data.GraphQL.AST        (Name)
+import           Data.GraphQL.Schema     (Argument (..), Resolver, Schema,
+                                          Value (..), array, arrayA', object',
+                                          objectA', scalar, scalarA)
+import           Data.Int                (Int32)
+import           Data.List.NonEmpty      (NonEmpty ((:|)), fromList)
+import           Data.Maybe              (fromMaybe)
+import           Data.Text               (Text)
+import           Haxl.Core               (GenHaxl)
 import           User.API
 import           User.Types
-import           Yuntan.Types.HasMySQL (HasMySQL)
-import           Yuntan.Types.OrderBy  (desc)
-import           Yuntan.Utils.GraphQL  (getTextValue, getValue, value)
+import           Yuntan.Types.HasMySQL   (HasMySQL)
+import           Yuntan.Types.ListResult (From, Size)
+import           Yuntan.Types.OrderBy    (desc)
+import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 
 -- type Query {
 --  user(name: String!): User
@@ -107,16 +108,15 @@ bind = objectA' "bind" $ \case
   (Argument "name" (ValueEnum name):_)   -> maybe [] bind_ <$> getBindByName name
   _ -> empty
 
+paramPage :: [Argument] -> (From, Size)
+paramPage argv = (from , size)
+  where from = fromMaybe 0 $ getIntValue "from" argv
+        size = fromMaybe 10 $ getIntValue "size" argv
+
 binds :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
 binds n uid = arrayA' n $ \argv ->
-  case (getValue "from" argv, getValue "size" argv) of
-    (Just (ValueInt f), Just (ValueInt s)) -> binds_ f s
-    (Just (ValueInt f), _)                 -> binds_ f 10
-    (_, Just (ValueInt s))                 -> binds_ 0 s
-    _                                      -> empty
-
-  where binds_ :: HasMySQL u => Int32 -> Int32 -> GenHaxl u [[Resolver (GenHaxl u)]]
-        binds_ f s = map bind_ <$> getBindListByUID uid (fromIntegral f) (fromIntegral s) (desc "id")
+  let (f, s) = paramPage argv
+      in map bind_ <$> getBindListByUID uid f s (desc "id")
 
 bindCount :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
 bindCount n uid = scalarA n $ \case
@@ -128,14 +128,8 @@ serviceBinds n uid = arrayA' n $ \argv ->
   case getTextValue "service" argv of
     Nothing -> empty
     Just srv ->
-      case (getValue "from" argv, getValue "size" argv) of
-        (Just (ValueInt f), Just (ValueInt s)) -> binds_ srv f s
-        (Just (ValueInt f), _)                 -> binds_ srv f 10
-        (_, Just (ValueInt s))                 -> binds_ srv 0 s
-        _                                      -> empty
-
-  where binds_ :: HasMySQL u => Text -> Int32 -> Int32 -> GenHaxl u [[Resolver (GenHaxl u)]]
-        binds_ srv f s = map bind_ <$> getBindListByUIDAndService uid srv (fromIntegral f) (fromIntegral s) (desc "id")
+      let (f, s) = paramPage argv
+          in map bind_ <$> getBindListByUIDAndService uid srv f s (desc "id")
 
 serviceBindCount :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
 serviceBindCount n uid = scalarA n $ \argv ->
@@ -144,15 +138,9 @@ serviceBindCount n uid = scalarA n $ \argv ->
     Nothing  -> empty
 
 users :: HasMySQL u => Resolver (GenHaxl u)
-users = arrayA' "users" $ \ argv ->
-  case (getValue "from" argv, getValue "size" argv) of
-    (Just (ValueInt f), Just (ValueInt s)) -> users_ f s
-    (Just (ValueInt f), _)                 -> users_ f 10
-    (_, Just (ValueInt s))                 -> users_ 0 s
-    _                                      -> empty
-
-  where users_ :: HasMySQL u => Int32 -> Int32 -> GenHaxl u [[Resolver (GenHaxl u)]]
-        users_ f s = map user_ <$> getUsers (fromIntegral f) (fromIntegral s) (desc "id")
+users = arrayA' "users" $ \argv ->
+  let (f, s) = paramPage argv
+      in map user_ <$> getUsers f s (desc "id")
 
 total :: HasMySQL u => Resolver (GenHaxl u)
 total = scalarA "total" $ \case
@@ -164,14 +152,8 @@ serviceBinds' = arrayA' "service_binds" $ \argv ->
   case getTextValue "service" argv of
     Nothing -> empty
     Just srv ->
-      case (getValue "from" argv, getValue "size" argv) of
-        (Just (ValueInt f), Just (ValueInt s)) -> binds_ srv f s
-        (Just (ValueInt f), _)                 -> binds_ srv f 10
-        (_, Just (ValueInt s))                 -> binds_ srv 0 s
-        _                                      -> empty
-
-  where binds_ :: HasMySQL u => Text -> Int32 -> Int32 -> GenHaxl u [[Resolver (GenHaxl u)]]
-        binds_ srv f s = map bind_ <$> getBindListByService srv (fromIntegral f) (fromIntegral s) (desc "id")
+      let (f, s) = paramPage argv
+          in map bind_ <$> getBindListByService srv f s (desc "id")
 
 serviceBindCount' :: HasMySQL u => Resolver (GenHaxl u)
 serviceBindCount' = scalarA "service_bind_count" $ \argv ->
