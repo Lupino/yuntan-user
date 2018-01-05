@@ -117,7 +117,7 @@ requireUser act = do
 removeUserAPIHandler :: HasMySQL u => User -> ActionH u ()
 removeUserAPIHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
-  void . lift $ removeBinds uid
+  void . lift $ removeBindByUID uid
   void . lift $ removeGroupListByUserID uid
   resultOK
 

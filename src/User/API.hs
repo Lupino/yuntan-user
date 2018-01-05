@@ -15,9 +15,9 @@ module User.API
   , getBindByName
   , removeBind
   , updateBindExtra
-  , countBind
-  , getBinds
-  , removeBinds
+  , countBindByUID
+  , getBindListByUID
+  , removeBindByUID
 
   , mergeData
 
@@ -69,22 +69,22 @@ getBind            :: HasMySQL u => BindID -> GenHaxl u (Maybe Bind)
 getBindByName      :: HasMySQL u => ServiceName -> GenHaxl u (Maybe Bind)
 removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
 updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
-countBind          :: HasMySQL u => UserID -> GenHaxl u Int64
-getBinds           :: HasMySQL u => UserID -> GenHaxl u [Bind]
-removeBinds        :: HasMySQL u => UserID -> GenHaxl u Int64
+countBindByUID     :: HasMySQL u => UserID -> GenHaxl u Int64
+getBindListByUID   :: HasMySQL u => UserID -> GenHaxl u [Bind]
+removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
 getBind bid            = dataFetch (GetBind bid)
 getBindByName n        = dataFetch (GetBindByName n)
 removeBind bid         = uncachedRequest (RemoveBind bid)
 updateBindExtra bid ex = uncachedRequest (UpdateBindExtra bid ex)
-countBind uid          = dataFetch (CountBind uid)
-getBinds uid           = dataFetch (GetBinds uid)
-removeBinds uid        = uncachedRequest (RemoveBinds uid)
+countBindByUID uid     = dataFetch (CountBindByUID uid)
+getBindListByUID uid   = dataFetch (GetBindListByUID uid)
+removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
 
 fillBinds :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
 fillBinds (Just u@User{getUserID = uid}) = do
-  binds <- getBinds uid
+  binds <- getBindListByUID uid
   return (Just u { getUserBinds = binds })
 
 fillBinds Nothing = return Nothing

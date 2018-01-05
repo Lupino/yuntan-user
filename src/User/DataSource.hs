@@ -54,9 +54,9 @@ data UserReq a where
   GetBindByName      :: ServiceName -> UserReq (Maybe Bind)
   RemoveBind         :: BindID -> UserReq Int64
   UpdateBindExtra    :: BindID -> Extra -> UserReq Int64
-  CountBind          :: UserID -> UserReq Int64
-  GetBinds           :: UserID -> UserReq [Bind]
-  RemoveBinds        :: UserID -> UserReq Int64
+  CountBindByUID     :: UserID -> UserReq Int64
+  GetBindListByUID   :: UserID -> UserReq [Bind]
+  RemoveBindByUID    :: UserID -> UserReq Int64
 
   MergeData          :: UserReq ()
 
@@ -86,9 +86,9 @@ instance Hashable (UserReq a) where
   hashWithSalt s (GetBindByName n)        = hashWithSalt s (12::Int, n)
   hashWithSalt s (RemoveBind bid)         = hashWithSalt s (13::Int, bid)
   hashWithSalt s (UpdateBindExtra bid ex) = hashWithSalt s (14::Int, bid, ex)
-  hashWithSalt s (CountBind uid)          = hashWithSalt s (15::Int, uid)
-  hashWithSalt s (GetBinds uid)           = hashWithSalt s (16::Int, uid)
-  hashWithSalt s (RemoveBinds uid)        = hashWithSalt s (17::Int, uid)
+  hashWithSalt s (CountBindByUID uid)     = hashWithSalt s (15::Int, uid)
+  hashWithSalt s (GetBindListByUID uid)   = hashWithSalt s (16::Int, uid)
+  hashWithSalt s (RemoveBindByUID uid)    = hashWithSalt s (17::Int, uid)
 
   hashWithSalt s MergeData                = hashWithSalt s (20::Int)
 
@@ -155,9 +155,9 @@ fetchReq (GetBind bid)                  = getBind bid
 fetchReq (GetBindByName n)              = getBindByName n
 fetchReq (RemoveBind bid)               = removeBind bid
 fetchReq (UpdateBindExtra bid ex)       = updateBindExtra bid ex
-fetchReq (CountBind uid)                = countBind uid
-fetchReq (GetBinds uid)                 = getBinds uid
-fetchReq (RemoveBinds uid)              = removeBinds uid
+fetchReq (CountBindByUID uid)           = countBindByUID uid
+fetchReq (GetBindListByUID uid)         = getBindListByUID uid
+fetchReq (RemoveBindByUID uid)          = removeBindByUID uid
 
 fetchReq MergeData                      = mergeData
 
