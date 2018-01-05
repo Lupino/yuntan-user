@@ -7,6 +7,7 @@ module User.GraphQL
     schema
   , schemaByUser
   , schemaByBind
+  , schemaByService
   ) where
 
 import           Control.Applicative     (Alternative (..))
@@ -74,6 +75,9 @@ schemaByUser u = fromList (user_ u)
 schemaByBind :: HasMySQL u => Bind -> Schema (GenHaxl u)
 schemaByBind b = fromList (bind_ b)
 
+schemaByService :: HasMySQL u => Service -> Schema (GenHaxl u)
+schemaByService b = fromList (service_ b)
+
 user :: HasMySQL u => Resolver (GenHaxl u)
 user = objectA' "user" $ \case
   (Argument "name" (ValueString name):_) -> maybe [] user_ <$> getUserByName name
@@ -138,32 +142,32 @@ service' n uid = objectA' n $ \argv ->
     Just srv -> pure $ service__ uid srv
     Nothing  -> empty
 
-service_ :: HasMySQL u => Text -> [Resolver (GenHaxl u)]
+service_ :: HasMySQL u => Service -> [Resolver (GenHaxl u)]
 service_ srv = [ scalar "service" srv
                , serviceBinds "binds" srv
                , serviceBindCount "bind_count" srv
                ]
 
-service__ :: HasMySQL u => UserID -> Text -> [Resolver (GenHaxl u)]
+service__ :: HasMySQL u => UserID -> Service -> [Resolver (GenHaxl u)]
 service__ uid srv = [ scalar "service" srv
                     , serviceBinds_ "binds" uid srv
                     , serviceBindCount_ "bind_count" uid srv
                     ]
 
-serviceBinds :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+serviceBinds :: HasMySQL u => Name -> Service -> Resolver (GenHaxl u)
 serviceBinds n srv = arrayA' n $ \argv ->
   let (f, s) = paramPage argv
       in map bind_ <$> getBindListByService srv f s (desc "id")
 
-serviceBindCount :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+serviceBindCount :: HasMySQL u => Name -> Service -> Resolver (GenHaxl u)
 serviceBindCount n srv = scalarA n $ \_ -> countBindByService srv
 
-serviceBinds_ :: HasMySQL u => Name -> UserID -> Text -> Resolver (GenHaxl u)
+serviceBinds_ :: HasMySQL u => Name -> UserID -> Service -> Resolver (GenHaxl u)
 serviceBinds_ n uid srv = arrayA' n $ \argv ->
   let (f, s) = paramPage argv
       in map bind_ <$> getBindListByUIDAndService uid srv f s (desc "id")
 
-serviceBindCount_ :: HasMySQL u => Name -> UserID -> Text -> Resolver (GenHaxl u)
+serviceBindCount_ :: HasMySQL u => Name -> UserID -> Service -> Resolver (GenHaxl u)
 serviceBindCount_ n uid srv = scalarA n $ \_ -> countBindByUIDAndService uid srv
 
 users :: HasMySQL u => Resolver (GenHaxl u)

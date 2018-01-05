@@ -119,11 +119,7 @@ application = do
   delete "/api/binds/:bind_id"               removeBindHandler
   get    "/api/service/:service/binds/"      getBindListByServiceHandler
 
-  get    "/api/graphql/" graphqlHandler
   post   "/api/graphql/" graphqlHandler
-
-  get    "/api/binds/:name/graphql/"  graphqlByBindHandler
   post   "/api/binds/:name/graphql/" graphqlByBindHandler
-
-  get    "/api/users/:uidOrName/graphql/" $ requireUser graphqlByUserHandler
   post   "/api/users/:uidOrName/graphql/" $ requireUser graphqlByUserHandler
+  post   "/api/service/:service/graphql/" graphqlByServiceHandler

@@ -27,6 +27,7 @@ module User.Handler
   , graphqlHandler
   , graphqlByBindHandler
   , graphqlByUserHandler
+  , graphqlByServiceHandler
   ) where
 
 import           Control.Monad           (void)
@@ -49,7 +50,7 @@ import           Data.Maybe              (fromMaybe)
 import           Data.Text               (pack, unpack)
 
 import           Data.GraphQL            (graphql)
-import           User.GraphQL            (schema, schemaByBind, schemaByUser)
+import           User.GraphQL
 
 createUserHandler :: HasMySQL u => ActionH u ()
 createUserHandler = do
@@ -269,3 +270,9 @@ graphqlByUserHandler :: HasMySQL u => User -> ActionH u ()
 graphqlByUserHandler u = do
   query <- param "query"
   json =<< lift (graphql (schemaByUser u) query)
+
+graphqlByServiceHandler :: HasMySQL u => ActionH u ()
+graphqlByServiceHandler = do
+  query <- param "query"
+  srv <- param "service"
+  json =<< lift (graphql (schemaByService srv) query)
