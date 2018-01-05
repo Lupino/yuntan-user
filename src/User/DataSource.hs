@@ -57,6 +57,10 @@ data UserReq a where
   CountBindByUID     :: UserID -> UserReq Int64
   GetBindListByUID   :: UserID -> From -> Size -> OrderBy -> UserReq [Bind]
   RemoveBindByUID    :: UserID -> UserReq Int64
+  CountBindByService :: Service -> UserReq Int64
+  GetBindListByService :: Service -> From -> Size -> OrderBy -> UserReq [Bind]
+  CountBindByUIDAndService :: UserID -> Service -> UserReq Int64
+  GetBindListByUIDAndService :: UserID -> Service -> From -> Size -> OrderBy -> UserReq [Bind]
 
   MergeData          :: UserReq ()
 
@@ -88,6 +92,10 @@ instance Hashable (UserReq a) where
   hashWithSalt s (UpdateBindExtra bid ex) = hashWithSalt s (14::Int, bid, ex)
   hashWithSalt s (CountBindByUID uid)     = hashWithSalt s (15::Int, uid)
   hashWithSalt s (GetBindListByUID uid f i o) = hashWithSalt s (16::Int, uid, f, i, o)
+  hashWithSalt s (CountBindByService srv) = hashWithSalt s (15::Int, srv)
+  hashWithSalt s (GetBindListByService srv f i o) = hashWithSalt s (16::Int, srv, f, i, o)
+  hashWithSalt s (CountBindByUIDAndService uid srv) = hashWithSalt s (15::Int, uid, srv)
+  hashWithSalt s (GetBindListByUIDAndService uid srv f i o) = hashWithSalt s (16::Int, uid, srv, f, i, o)
   hashWithSalt s (RemoveBindByUID uid)    = hashWithSalt s (17::Int, uid)
 
   hashWithSalt s MergeData                = hashWithSalt s (20::Int)
@@ -140,33 +148,37 @@ fetchSync (BlockedFetch req rvar) prefix conn = do
     Right a -> putSuccess rvar a
 
 fetchReq :: UserReq a -> MySQL a
-fetchReq  (CreateUser n h)              = createUser n h
-fetchReq  (GetUser k)                   = getUser k
-fetchReq  (GetUserByName k)             = getUserByName k
-fetchReq  (RemoveUser k)                = removeUser k
-fetchReq  (UpdateUserName k s)          = updateUserName k s
-fetchReq  (UpdateUserPassword k p)      = updateUserPassword k  p
-fetchReq  (UpdateUserExtra k e)         = updateUserExtra k e
-fetchReq  (GetUsers f s o)              = getUsers f s o
-fetchReq  CountUser                     = countUser
+fetchReq  (CreateUser n h)                = createUser n h
+fetchReq  (GetUser k)                     = getUser k
+fetchReq  (GetUserByName k)               = getUserByName k
+fetchReq  (RemoveUser k)                  = removeUser k
+fetchReq  (UpdateUserName k s)            = updateUserName k s
+fetchReq  (UpdateUserPassword k p)        = updateUserPassword k  p
+fetchReq  (UpdateUserExtra k e)           = updateUserExtra k e
+fetchReq  (GetUsers f s o)                = getUsers f s o
+fetchReq  CountUser                       = countUser
 
-fetchReq (CreateBind uid se n ex)       = createBind uid se n ex
-fetchReq (GetBind bid)                  = getBind bid
-fetchReq (GetBindByName n)              = getBindByName n
-fetchReq (RemoveBind bid)               = removeBind bid
-fetchReq (UpdateBindExtra bid ex)       = updateBindExtra bid ex
-fetchReq (CountBindByUID uid)           = countBindByUID uid
-fetchReq (GetBindListByUID uid f s o)   = getBindListByUID uid f s o
-fetchReq (RemoveBindByUID uid)          = removeBindByUID uid
+fetchReq (CreateBind uid se n ex)         = createBind uid se n ex
+fetchReq (GetBind bid)                    = getBind bid
+fetchReq (GetBindByName n)                = getBindByName n
+fetchReq (RemoveBind bid)                 = removeBind bid
+fetchReq (UpdateBindExtra bid ex)         = updateBindExtra bid ex
+fetchReq (CountBindByUID uid)             = countBindByUID uid
+fetchReq (GetBindListByUID uid f s o)     = getBindListByUID uid f s o
+fetchReq (CountBindByService srv)         = countBindByService srv
+fetchReq (GetBindListByService srv f s o) = getBindListByService srv f s o
+fetchReq (CountBindByUIDAndService uid srv) = countBindByUIDAndService uid srv
+fetchReq (GetBindListByUIDAndService uid srv f s o) = getBindListByUIDAndService uid srv f s o
+fetchReq (RemoveBindByUID uid)            = removeBindByUID uid
 
-fetchReq MergeData                      = mergeData
+fetchReq MergeData                        = mergeData
 
-fetchReq (AddGroup n uid)               = addGroup n uid
-fetchReq (RemoveGroup n uid)            = removeGroup n uid
-fetchReq (GetGroupListByUserID uid)     = getGroupListByUserID uid
-fetchReq (GetUserIDListByGroup n f s o) = getUserIDListByGroup n f s o
-fetchReq (RemoveGroupListByUserID uid)  = removeGroupListByUserID uid
-fetchReq (CountGroup n)                 = countGroup n
+fetchReq (AddGroup n uid)                 = addGroup n uid
+fetchReq (RemoveGroup n uid)              = removeGroup n uid
+fetchReq (GetGroupListByUserID uid)       = getGroupListByUserID uid
+fetchReq (GetUserIDListByGroup n f s o)   = getUserIDListByGroup n f s o
+fetchReq (RemoveGroupListByUserID uid)    = removeGroupListByUserID uid
+fetchReq (CountGroup n)                   = countGroup n
 
 
 initUserState :: Int -> State UserReq
