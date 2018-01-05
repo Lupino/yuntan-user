@@ -39,7 +39,7 @@ import           Yuntan.Types.HasMySQL   (HasMySQL)
 import           User.DataSource
 import           User.Types
 import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (OrderBy)
+import           Yuntan.Types.OrderBy    (OrderBy, desc)
 
 createUser         :: HasMySQL u => UserName -> Password -> GenHaxl u UserID
 getUser            :: HasMySQL u => UserID -> GenHaxl u (Maybe User)
@@ -70,7 +70,7 @@ getBindByName      :: HasMySQL u => ServiceName -> GenHaxl u (Maybe Bind)
 removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
 updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
 countBindByUID     :: HasMySQL u => UserID -> GenHaxl u Int64
-getBindListByUID   :: HasMySQL u => UserID -> GenHaxl u [Bind]
+getBindListByUID   :: HasMySQL u => UserID -> From -> Size -> OrderBy -> GenHaxl u [Bind]
 removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
@@ -79,12 +79,12 @@ getBindByName n        = dataFetch (GetBindByName n)
 removeBind bid         = uncachedRequest (RemoveBind bid)
 updateBindExtra bid ex = uncachedRequest (UpdateBindExtra bid ex)
 countBindByUID uid     = dataFetch (CountBindByUID uid)
-getBindListByUID uid   = dataFetch (GetBindListByUID uid)
+getBindListByUID uid f s o = dataFetch (GetBindListByUID uid f s o)
 removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
 
 fillBinds :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
 fillBinds (Just u@User{getUserID = uid}) = do
-  binds <- getBindListByUID uid
+  binds <- getBindListByUID uid 0 5 $ desc "id"
   return (Just u { getUserBinds = binds })
 
 fillBinds Nothing = return Nothing

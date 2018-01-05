@@ -21,6 +21,8 @@ import           Data.Int              (Int64)
 import           Data.Maybe            (listToMaybe)
 import           Data.String           (fromString)
 import           Data.UnixTime
+import           Yuntan.Types.ListResult (From, Size)
+import           Yuntan.Types.OrderBy    (OrderBy)
 
 import           User.Types
 
@@ -56,9 +58,11 @@ countBindByUID :: UserID -> MySQL Int64
 countBindByUID uid prefix conn = maybe 0 fromOnly . listToMaybe <$> query conn sql (Only uid)
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_binds` WHERE `user_id`=?" ]
 
-getBindListByUID :: UserID -> MySQL [Bind]
-getBindListByUID uid prefix conn = query conn sql (Only uid)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds` WHERE `user_id`=?" ]
+getBindListByUID :: UserID -> From -> Size -> OrderBy -> MySQL [Bind]
+getBindListByUID uid from size o prefix conn = query conn sql (uid, from, size)
+  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds`"
+                                  , " WHERE `user_id`=? "
+                                  , show o, " LIMIT ?,?" ]
 
 removeBindByUID :: UserID -> MySQL Int64
 removeBindByUID uid prefix conn = execute conn sql (Only uid)

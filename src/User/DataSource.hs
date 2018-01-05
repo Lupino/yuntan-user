@@ -55,7 +55,7 @@ data UserReq a where
   RemoveBind         :: BindID -> UserReq Int64
   UpdateBindExtra    :: BindID -> Extra -> UserReq Int64
   CountBindByUID     :: UserID -> UserReq Int64
-  GetBindListByUID   :: UserID -> UserReq [Bind]
+  GetBindListByUID   :: UserID -> From -> Size -> OrderBy -> UserReq [Bind]
   RemoveBindByUID    :: UserID -> UserReq Int64
 
   MergeData          :: UserReq ()
@@ -87,7 +87,7 @@ instance Hashable (UserReq a) where
   hashWithSalt s (RemoveBind bid)         = hashWithSalt s (13::Int, bid)
   hashWithSalt s (UpdateBindExtra bid ex) = hashWithSalt s (14::Int, bid, ex)
   hashWithSalt s (CountBindByUID uid)     = hashWithSalt s (15::Int, uid)
-  hashWithSalt s (GetBindListByUID uid)   = hashWithSalt s (16::Int, uid)
+  hashWithSalt s (GetBindListByUID uid f i o) = hashWithSalt s (16::Int, uid, f, i, o)
   hashWithSalt s (RemoveBindByUID uid)    = hashWithSalt s (17::Int, uid)
 
   hashWithSalt s MergeData                = hashWithSalt s (20::Int)
@@ -156,7 +156,7 @@ fetchReq (GetBindByName n)              = getBindByName n
 fetchReq (RemoveBind bid)               = removeBind bid
 fetchReq (UpdateBindExtra bid ex)       = updateBindExtra bid ex
 fetchReq (CountBindByUID uid)           = countBindByUID uid
-fetchReq (GetBindListByUID uid)         = getBindListByUID uid
+fetchReq (GetBindListByUID uid f s o)   = getBindListByUID uid f s o
 fetchReq (RemoveBindByUID uid)          = removeBindByUID uid
 
 fetchReq MergeData                      = mergeData
