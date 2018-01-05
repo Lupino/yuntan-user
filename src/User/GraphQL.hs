@@ -32,10 +32,15 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 --  user(id: Int!): User
 --  bind(name: String!): Bind
 --  bind(name: Enum!): Bind
+--  service(service: String!): Service
 --  service_binds(service: String!, from: Int, size: Int): [Bind]
 --  service_bind_count(service: String!)
 --  users(from: Int, size: Int): [User]
 --  total: Int
+-- }
+-- type Service {
+--  binds(from: Int, size: Int): [Bind]
+--  bind_count: Int
 -- }
 -- type User {
 --  id: Int
@@ -44,8 +49,7 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 --  binds(from: Int, size: Int): [Bind]
 --  bind_count: Int
 --  groups: [String]
---  service_binds(service: String!, from: Int, size: Int): [Bind]
---  service_bind_count(service: String!): Int
+--  service(service: String!): Service
 --  created_at: Int
 -- }
 -- type Bind {
@@ -62,7 +66,7 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 -- }
 
 schema :: HasMySQL u => Schema (GenHaxl u)
-schema = user :| [bind, users, total, serviceBinds', serviceBindCount']
+schema = user :| [bind, users, total, service]
 
 schemaByUser :: HasMySQL u => User -> Schema (GenHaxl u)
 schemaByUser u = fromList (user_ u)
@@ -83,8 +87,7 @@ user_ User{..} = [ scalar "id"         getUserID
                  , value  "extra"      getUserExtra
                  , binds "binds"       getUserID
                  , bindCount "bind_count" getUserID
-                 , serviceBinds "service_binds" getUserID
-                 , serviceBindCount "service_bind_count" getUserID
+                 , service' "service"  getUserID
                  , scalar "groups"     getUserGroups
                  , scalar "created_at" getUserCreatedAt
                  ]
@@ -123,19 +126,45 @@ bindCount n uid = scalarA n $ \case
   [] -> countBindByUID uid
   _  -> empty
 
-serviceBinds :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
-serviceBinds n uid = arrayA' n $ \argv ->
+service :: HasMySQL u => Resolver (GenHaxl u)
+service = objectA' "service" $ \argv ->
   case getTextValue "service" argv of
-    Nothing -> empty
-    Just srv ->
-      let (f, s) = paramPage argv
-          in map bind_ <$> getBindListByUIDAndService uid srv f s (desc "id")
-
-serviceBindCount :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
-serviceBindCount n uid = scalarA n $ \argv ->
-  case getTextValue "service" argv of
-    Just srv -> countBindByUIDAndService uid srv
+    Just srv -> pure $ service_ srv
     Nothing  -> empty
+
+service' :: HasMySQL u => Name -> UserID -> Resolver (GenHaxl u)
+service' n uid = objectA' n $ \argv ->
+  case getTextValue "service" argv of
+    Just srv -> pure $ service__ uid srv
+    Nothing  -> empty
+
+service_ :: HasMySQL u => Text -> [Resolver (GenHaxl u)]
+service_ srv = [ scalar "service" srv
+               , serviceBinds "binds" srv
+               , serviceBindCount "bind_count" srv
+               ]
+
+service__ :: HasMySQL u => UserID -> Text -> [Resolver (GenHaxl u)]
+service__ uid srv = [ scalar "service" srv
+                    , serviceBinds_ "binds" uid srv
+                    , serviceBindCount_ "bind_count" uid srv
+                    ]
+
+serviceBinds :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+serviceBinds n srv = arrayA' n $ \argv ->
+  let (f, s) = paramPage argv
+      in map bind_ <$> getBindListByService srv f s (desc "id")
+
+serviceBindCount :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+serviceBindCount n srv = scalarA n $ \_ -> countBindByService srv
+
+serviceBinds_ :: HasMySQL u => Name -> UserID -> Text -> Resolver (GenHaxl u)
+serviceBinds_ n uid srv = arrayA' n $ \argv ->
+  let (f, s) = paramPage argv
+      in map bind_ <$> getBindListByUIDAndService uid srv f s (desc "id")
+
+serviceBindCount_ :: HasMySQL u => Name -> UserID -> Text -> Resolver (GenHaxl u)
+serviceBindCount_ n uid srv = scalarA n $ \_ -> countBindByUIDAndService uid srv
 
 users :: HasMySQL u => Resolver (GenHaxl u)
 users = arrayA' "users" $ \argv ->
@@ -146,17 +175,3 @@ total :: HasMySQL u => Resolver (GenHaxl u)
 total = scalarA "total" $ \case
   [] -> countUser
   _  -> empty
-
-serviceBinds' :: HasMySQL u => Resolver (GenHaxl u)
-serviceBinds' = arrayA' "service_binds" $ \argv ->
-  case getTextValue "service" argv of
-    Nothing -> empty
-    Just srv ->
-      let (f, s) = paramPage argv
-          in map bind_ <$> getBindListByService srv f s (desc "id")
-
-serviceBindCount' :: HasMySQL u => Resolver (GenHaxl u)
-serviceBindCount' = scalarA "service_bind_count" $ \argv ->
-  case getTextValue "service" argv of
-    Just srv -> countBindByService srv
-    Nothing  -> empty
