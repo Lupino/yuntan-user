@@ -37,7 +37,7 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 --  service_binds(service: String!, from: Int, size: Int): [Bind]
 --  service_bind_count(service: String!)
 --  users(from: Int, size: Int): [User]
---  total: Int
+--  user_count: Int
 -- }
 -- type Service {
 --  binds(from: Int, size: Int): [Bind]
@@ -67,7 +67,7 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 -- }
 
 schema :: HasMySQL u => Schema (GenHaxl u)
-schema = user :| [bind, users, total, service]
+schema = user :| [bind, users, userCount, service]
 
 schemaByUser :: HasMySQL u => User -> Schema (GenHaxl u)
 schemaByUser u = fromList (user_ u)
@@ -175,7 +175,7 @@ users = arrayA' "users" $ \argv ->
   let (f, s) = paramPage argv
       in map user_ <$> getUsers f s (desc "id")
 
-total :: HasMySQL u => Resolver (GenHaxl u)
-total = scalarA "total" $ \case
+userCount :: HasMySQL u => Resolver (GenHaxl u)
+userCount = scalarA "user_count" $ \case
   [] -> countUser
   _  -> empty
