@@ -16,6 +16,9 @@ module User.APIHandler
   , createBindAPIHandler
   , getBindAPIHandler
   , removeBindAPIHandler
+  , getBindListByServiceAPIHandler
+  , getBindListByUserAPIHandler
+  , getBindListByUserAndServiceAPIHandler
 
   , createGroupAPIHandler
   , removeGroupAPIHandler
@@ -162,6 +165,13 @@ clearUserExtraAPIHandler User{getUserID = uid} =
 flip' :: (a -> b -> c -> d) -> c -> a -> b -> d
 flip' f c a b = f a b c
 
+paramPage :: ActionH u (From, Size)
+paramPage = do
+  from <- param "from" `rescue` (\_ -> return (0::From))
+  size <- param "size" `rescue` (\_ -> return (10::Size))
+  pure (from, size)
+
+
 getUsersAPIHandler :: HasMySQL u => ActionH u ()
 getUsersAPIHandler = userListAPIHandler countUser (flip' getUsers (desc "id"))
 
@@ -172,8 +182,7 @@ getUserListByGroupAPIHandler = do
 
 userListAPIHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [User]) ->  ActionH u ()
 userListAPIHandler count userList = do
-  from <- param "from" `rescue` (\_ -> return (0::From))
-  size <- param "size" `rescue` (\_ -> return (10::Size))
+  (from, size) <- paramPage
   total <- lift count
   users <- lift $ userList from size
   okListResult "users" ListResult { getFrom   = from
@@ -200,6 +209,31 @@ removeBindAPIHandler = do
   bid <- param "bind_id"
   void . lift $ removeBind bid
   resultOK
+
+getBindListByServiceAPIHandler :: HasMySQL u => ActionH u ()
+getBindListByServiceAPIHandler = do
+  srv <- param "service"
+  bindListAPIHandler (countBindByService srv) (flip' (getBindListByService srv) (desc "id"))
+
+getBindListByUserAPIHandler :: HasMySQL u => User -> ActionH u ()
+getBindListByUserAPIHandler User{getUserID = uid}=
+  bindListAPIHandler (countBindByUID uid) (flip' (getBindListByUID uid) (desc "id"))
+
+getBindListByUserAndServiceAPIHandler :: HasMySQL u => User -> ActionH u ()
+getBindListByUserAndServiceAPIHandler User{getUserID = uid}= do
+  srv <- param "service"
+  bindListAPIHandler (countBindByUIDAndService uid srv) (flip' (getBindListByUIDAndService uid srv) (desc "id"))
+
+bindListAPIHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [Bind]) -> ActionH u ()
+bindListAPIHandler count bindList = do
+  (from, size) <- paramPage
+  total <- lift count
+  users <- lift $ bindList from size
+  okListResult "binds" ListResult { getFrom   = from
+                                  , getSize   = size
+                                  , getTotal  = total
+                                  , getResult = users
+                                  }
 
 createGroupAPIHandler :: HasMySQL u => User -> ActionH u ()
 createGroupAPIHandler User{getUserID = uid}= do

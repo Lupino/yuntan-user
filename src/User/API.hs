@@ -64,7 +64,7 @@ updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
 updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
 getUsers from size order      = do
   users <- dataFetch (GetUsers from size order)
-  catMaybes <$> (for users $ \user -> fillGroups =<< fillBinds (Just user))
+  catMaybes <$> for users (\user -> fillGroups =<< fillBinds (Just user))
 
 countUser                     = dataFetch CountUser
 

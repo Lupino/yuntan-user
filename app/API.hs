@@ -106,7 +106,10 @@ application = do
   post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraAPIHandler
   post   "/api/users/:uidOrName/verify"      $ requireUser verifyPasswordAPIHandler
 
-  post   "/api/users/:uidOrName/binds"       $ requireUser createBindAPIHandler
+  post   "/api/users/:uidOrName/binds/"      $ requireUser createBindAPIHandler
+
+  get    "/api/users/:uidOrName/binds/"      $ requireUser getBindListByUserAPIHandler
+  get    "/api/users/:uidOrName/binds/:service" $ requireUser getBindListByUserAndServiceAPIHandler
 
   post   "/api/groups/:group/:uidOrName/"    $ requireUser createGroupAPIHandler
   delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupAPIHandler
@@ -114,6 +117,7 @@ application = do
 
   get    "/api/binds/"                       getBindAPIHandler
   delete "/api/binds/:bind_id"               removeBindAPIHandler
+  get    "/api/service/:service/binds/"      getBindListByServiceAPIHandler
 
   get    "/api/graphql/" graphqlHandler
   post   "/api/graphql/" graphqlHandler
