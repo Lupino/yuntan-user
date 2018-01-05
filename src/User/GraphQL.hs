@@ -38,10 +38,17 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 --  service_bind_count(service: String!)
 --  users(from: Int, size: Int): [User]
 --  user_count: Int
+--  group(group: String): Group
 -- }
 -- type Service {
+--  service: String
 --  binds(from: Int, size: Int): [Bind]
 --  bind_count: Int
+-- }
+-- type Group {
+--  group: String
+--  users(from: Int, size: Int): [User]
+--  user_count: Int
 -- }
 -- type User {
 --  id: Int
@@ -67,7 +74,7 @@ import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
 -- }
 
 schema :: HasMySQL u => Schema (GenHaxl u)
-schema = user :| [bind, users, userCount, service]
+schema = user :| [bind, users, userCount, service, group]
 
 schemaByUser :: HasMySQL u => User -> Schema (GenHaxl u)
 schemaByUser u = fromList (user_ u)
@@ -179,3 +186,23 @@ userCount :: HasMySQL u => Resolver (GenHaxl u)
 userCount = scalarA "user_count" $ \case
   [] -> countUser
   _  -> empty
+
+group :: HasMySQL u => Resolver (GenHaxl u)
+group = objectA' "group" $ \argv ->
+  case getTextValue "group" argv of
+    Just srv -> pure $ group_ srv
+    Nothing  -> empty
+
+group_ :: HasMySQL u => Text -> [Resolver (GenHaxl u)]
+group_ g = [ scalar "group" g
+           , groupUsers "users" g
+           , groupUserCount "user_count" g
+           ]
+
+groupUsers :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+groupUsers n g = arrayA' n $ \argv ->
+  let (f, s) = paramPage argv
+      in map user_ <$> getUserListByGroup g f s (desc "user_id")
+
+groupUserCount :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+groupUserCount n g = scalarA n $ \_ -> countGroup g
