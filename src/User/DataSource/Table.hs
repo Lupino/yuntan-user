@@ -55,11 +55,21 @@ updateTable_1511230647 prefix conn =
     , " MODIFY COLUMN `group` varchar(128) NOT NULL"
     ]
 
+updateTable_1515125161 :: MySQL ()
+updateTable_1515125161 prefix conn =
+  void $ execute_ conn . fromString $ concat
+    [ "ALTER TABLE `", prefix, "_binds`"
+    , "  ADD INDEX `user_id` (`user_id`),"
+    , "  ADD INDEX `service` (`service`),"
+    , "  ADD INDEX `user_service` (`user_id`, `service`)"
+    ]
+
 versionList :: VersionList
 versionList =
   [ (1, [createUserTable, createBindTable])
   , (2, [createGroupTable])
   , (3, [updateTable_1511230647])
+  , (4, [updateTable_1515125161])
   ]
 
 mergeData :: MySQL ()
