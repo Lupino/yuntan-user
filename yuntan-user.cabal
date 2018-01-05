@@ -24,7 +24,7 @@ library
                      , User.DataSource.Group
                      , User.API
 
-                     , User.APIHandler
+                     , User.Handler
                      , User.Utils
                      , User.GraphQL
                      , User.Config

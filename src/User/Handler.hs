@@ -1,28 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
-module User.APIHandler
+module User.Handler
   (
-    createUserAPIHandler
+    createUserHandler
   , requireUser
-  , getUserAPIHandler
-  , removeUserAPIHandler
-  , updateUserNameAPIHandler
-  , updateUserPasswordAPIHandler
-  , updateUserExtraAPIHandler
-  , removeUserExtraAPIHandler
-  , clearUserExtraAPIHandler
-  , getUsersAPIHandler
-  , verifyPasswordAPIHandler
+  , getUserHandler
+  , removeUserHandler
+  , updateUserNameHandler
+  , updateUserPasswordHandler
+  , updateUserExtraHandler
+  , removeUserExtraHandler
+  , clearUserExtraHandler
+  , getUsersHandler
+  , verifyPasswordHandler
 
-  , createBindAPIHandler
-  , getBindAPIHandler
-  , removeBindAPIHandler
-  , getBindListByServiceAPIHandler
-  , getBindListByUserAPIHandler
-  , getBindListByUserAndServiceAPIHandler
+  , createBindHandler
+  , getBindHandler
+  , removeBindHandler
+  , getBindListByServiceHandler
+  , getBindListByUserHandler
+  , getBindListByUserAndServiceHandler
 
-  , createGroupAPIHandler
-  , removeGroupAPIHandler
-  , getUserListByGroupAPIHandler
+  , createGroupHandler
+  , removeGroupHandler
+  , getUserListByGroupHandler
 
   , graphqlHandler
   , graphqlByBindHandler
@@ -51,8 +51,8 @@ import           Data.Text               (pack, unpack)
 import           Data.GraphQL            (graphql)
 import           User.GraphQL            (schema, schemaByBind, schemaByUser)
 
-createUserAPIHandler :: HasMySQL u => ActionH u ()
-createUserAPIHandler = do
+createUserHandler :: HasMySQL u => ActionH u ()
+createUserHandler = do
   name <- param "username"
   passwd <- hashPassword <$> param "passwd"
 
@@ -64,8 +64,8 @@ createUserAPIHandler = do
       uid <- lift $ createUser (pack name) (pack passwd)
       json =<< lift (getUser uid)
 
-verifyPasswordAPIHandler :: HasMySQL u => User -> ActionH u ()
-verifyPasswordAPIHandler User{getUserPassword = pwd} = do
+verifyPasswordHandler :: HasMySQL u => User -> ActionH u ()
+verifyPasswordHandler User{getUserPassword = pwd} = do
   valid <- flip isVaildPassword (unpack pwd) <$> param "passwd"
   if valid then resultOK
            else errorInvalidPassword
@@ -104,8 +104,8 @@ apiUser = do
       if isDigest name then lift (getUser $ read name)
                        else return Nothing
 
-getUserAPIHandler :: User -> ActionH u ()
-getUserAPIHandler = json
+getUserHandler :: User -> ActionH u ()
+getUserHandler = json
 
 requireUser :: HasMySQL u => (User -> ActionH u ()) -> ActionH u ()
 requireUser act = do
@@ -117,15 +117,15 @@ requireUser act = do
   where errorUserNotFound :: ActionH u ()
         errorUserNotFound = errNotFound "User is not found."
 
-removeUserAPIHandler :: HasMySQL u => User -> ActionH u ()
-removeUserAPIHandler User{getUserID = uid} = do
+removeUserHandler :: HasMySQL u => User -> ActionH u ()
+removeUserHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBindByUID uid
   void . lift $ removeGroupListByUserID uid
   resultOK
 
-updateUserNameAPIHandler :: HasMySQL u => User -> ActionH u ()
-updateUserNameAPIHandler User{getUserID = uid} = do
+updateUserNameHandler :: HasMySQL u => User -> ActionH u ()
+updateUserNameHandler User{getUserID = uid} = do
   name <- param "username"
   case (isDigest name, isValidUserName name) of
     (True, _) -> errorInvalidUserName'
@@ -134,14 +134,14 @@ updateUserNameAPIHandler User{getUserID = uid} = do
       void . lift $ updateUserName uid (pack name)
       resultOK
 
-updateUserPasswordAPIHandler :: HasMySQL u => User -> ActionH u ()
-updateUserPasswordAPIHandler User{getUserID = uid} = do
+updateUserPasswordHandler :: HasMySQL u => User -> ActionH u ()
+updateUserPasswordHandler User{getUserID = uid} = do
   passwd <- pack . hashPassword <$> param "passwd"
   void . lift $ updateUserPassword uid passwd
   resultOK
 
-updateUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
-updateUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
+updateUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+updateUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
@@ -150,15 +150,15 @@ updateUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
 errorExtraRequired :: ActionH u ()
 errorExtraRequired = errBadRequest "extra field is required."
 
-removeUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
-removeUserExtraAPIHandler User{getUserID = uid, getUserExtra = oev} = do
+removeUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+removeUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
-clearUserExtraAPIHandler :: HasMySQL u => User -> ActionH u ()
-clearUserExtraAPIHandler User{getUserID = uid} =
+clearUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+clearUserExtraHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
 
@@ -172,16 +172,16 @@ paramPage = do
   pure (from, size)
 
 
-getUsersAPIHandler :: HasMySQL u => ActionH u ()
-getUsersAPIHandler = userListAPIHandler countUser (flip' getUsers (desc "id"))
+getUsersHandler :: HasMySQL u => ActionH u ()
+getUsersHandler = userListHandler countUser (flip' getUsers (desc "id"))
 
-getUserListByGroupAPIHandler :: HasMySQL u => ActionH u ()
-getUserListByGroupAPIHandler = do
+getUserListByGroupHandler :: HasMySQL u => ActionH u ()
+getUserListByGroupHandler = do
   group <- param "group"
-  userListAPIHandler (countGroup group) (flip' (getUserListByGroup group) (desc "user_id"))
+  userListHandler (countGroup group) (flip' (getUserListByGroup group) (desc "user_id"))
 
-userListAPIHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [User]) ->  ActionH u ()
-userListAPIHandler count userList = do
+userListHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [User]) ->  ActionH u ()
+userListHandler count userList = do
   (from, size) <- paramPage
   total <- lift count
   users <- lift $ userList from size
@@ -191,41 +191,41 @@ userListAPIHandler count userList = do
                                   , getResult = users
                                   }
 
-createBindAPIHandler :: HasMySQL u => User -> ActionH u ()
-createBindAPIHandler User{getUserID = uid} = do
+createBindHandler :: HasMySQL u => User -> ActionH u ()
+createBindHandler User{getUserID = uid} = do
   service <- param "service"
   name <- param "name"
   extra <- decode <$> (param "extra" `rescue` (\_ -> return "null"))
   bid <- lift $ createBind uid service name $ fromMaybe Null extra
   json =<< lift (getBind bid)
 
-getBindAPIHandler :: HasMySQL u => ActionH u ()
-getBindAPIHandler = do
+getBindHandler :: HasMySQL u => ActionH u ()
+getBindHandler = do
   name <- param "name"
   maybeNotFound "Bind" =<< lift (getBindByName name)
 
-removeBindAPIHandler :: HasMySQL u => ActionH u ()
-removeBindAPIHandler = do
+removeBindHandler :: HasMySQL u => ActionH u ()
+removeBindHandler = do
   bid <- param "bind_id"
   void . lift $ removeBind bid
   resultOK
 
-getBindListByServiceAPIHandler :: HasMySQL u => ActionH u ()
-getBindListByServiceAPIHandler = do
+getBindListByServiceHandler :: HasMySQL u => ActionH u ()
+getBindListByServiceHandler = do
   srv <- param "service"
-  bindListAPIHandler (countBindByService srv) (flip' (getBindListByService srv) (desc "id"))
+  bindListHandler (countBindByService srv) (flip' (getBindListByService srv) (desc "id"))
 
-getBindListByUserAPIHandler :: HasMySQL u => User -> ActionH u ()
-getBindListByUserAPIHandler User{getUserID = uid}=
-  bindListAPIHandler (countBindByUID uid) (flip' (getBindListByUID uid) (desc "id"))
+getBindListByUserHandler :: HasMySQL u => User -> ActionH u ()
+getBindListByUserHandler User{getUserID = uid}=
+  bindListHandler (countBindByUID uid) (flip' (getBindListByUID uid) (desc "id"))
 
-getBindListByUserAndServiceAPIHandler :: HasMySQL u => User -> ActionH u ()
-getBindListByUserAndServiceAPIHandler User{getUserID = uid}= do
+getBindListByUserAndServiceHandler :: HasMySQL u => User -> ActionH u ()
+getBindListByUserAndServiceHandler User{getUserID = uid}= do
   srv <- param "service"
-  bindListAPIHandler (countBindByUIDAndService uid srv) (flip' (getBindListByUIDAndService uid srv) (desc "id"))
+  bindListHandler (countBindByUIDAndService uid srv) (flip' (getBindListByUIDAndService uid srv) (desc "id"))
 
-bindListAPIHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [Bind]) -> ActionH u ()
-bindListAPIHandler count bindList = do
+bindListHandler :: HasMySQL u => GenHaxl u Int64 -> (From -> Size -> GenHaxl u [Bind]) -> ActionH u ()
+bindListHandler count bindList = do
   (from, size) <- paramPage
   total <- lift count
   users <- lift $ bindList from size
@@ -235,14 +235,14 @@ bindListAPIHandler count bindList = do
                                   , getResult = users
                                   }
 
-createGroupAPIHandler :: HasMySQL u => User -> ActionH u ()
-createGroupAPIHandler User{getUserID = uid}= do
+createGroupHandler :: HasMySQL u => User -> ActionH u ()
+createGroupHandler User{getUserID = uid}= do
   group <- param "group"
   lift $ addGroup group uid
   resultOK
 
-removeGroupAPIHandler :: HasMySQL u => User -> ActionH u ()
-removeGroupAPIHandler User{getUserID = uid} = do
+removeGroupHandler :: HasMySQL u => User -> ActionH u ()
+removeGroupHandler User{getUserID = uid} = do
   group <- param "group"
   void . lift $ removeGroup group uid
   resultOK

@@ -19,7 +19,7 @@ import           Haxl.Core                            (GenHaxl, StateStore,
                                                        initEnv, runHaxl,
                                                        stateEmpty, stateSet)
 import           User
-import           User.APIHandler
+import           User.Handler
 
 import qualified Data.Yaml                            as Y
 import qualified User.Config                          as C
@@ -94,30 +94,30 @@ application :: HasMySQL u => ScottyH u ()
 application = do
   middleware logStdout
 
-  get    "/api/users/"                       getUsersAPIHandler
-  post   "/api/users/"                       createUserAPIHandler
-  get    "/api/users/:uidOrName/"            $ requireUser getUserAPIHandler
-  delete "/api/users/:uidOrName/"            $ requireUser removeUserAPIHandler
+  get    "/api/users/"                       getUsersHandler
+  post   "/api/users/"                       createUserHandler
+  get    "/api/users/:uidOrName/"            $ requireUser getUserHandler
+  delete "/api/users/:uidOrName/"            $ requireUser removeUserHandler
 
-  post   "/api/users/:uidOrName/"            $ requireUser updateUserNameAPIHandler
-  post   "/api/users/:uidOrName/passwd"      $ requireUser updateUserPasswordAPIHandler
-  post   "/api/users/:uidOrName/extra"       $ requireUser updateUserExtraAPIHandler
-  delete "/api/users/:uidOrName/extra"       $ requireUser removeUserExtraAPIHandler
-  post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraAPIHandler
-  post   "/api/users/:uidOrName/verify"      $ requireUser verifyPasswordAPIHandler
+  post   "/api/users/:uidOrName/"            $ requireUser updateUserNameHandler
+  post   "/api/users/:uidOrName/passwd"      $ requireUser updateUserPasswordHandler
+  post   "/api/users/:uidOrName/extra"       $ requireUser updateUserExtraHandler
+  delete "/api/users/:uidOrName/extra"       $ requireUser removeUserExtraHandler
+  post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraHandler
+  post   "/api/users/:uidOrName/verify"      $ requireUser verifyPasswordHandler
 
-  post   "/api/users/:uidOrName/binds/"      $ requireUser createBindAPIHandler
+  post   "/api/users/:uidOrName/binds/"      $ requireUser createBindHandler
 
-  get    "/api/users/:uidOrName/binds/"      $ requireUser getBindListByUserAPIHandler
-  get    "/api/users/:uidOrName/binds/:service" $ requireUser getBindListByUserAndServiceAPIHandler
+  get    "/api/users/:uidOrName/binds/"      $ requireUser getBindListByUserHandler
+  get    "/api/users/:uidOrName/binds/:service" $ requireUser getBindListByUserAndServiceHandler
 
-  post   "/api/groups/:group/:uidOrName/"    $ requireUser createGroupAPIHandler
-  delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupAPIHandler
-  get    "/api/groups/:group/"               getUserListByGroupAPIHandler
+  post   "/api/groups/:group/:uidOrName/"    $ requireUser createGroupHandler
+  delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupHandler
+  get    "/api/groups/:group/"               getUserListByGroupHandler
 
-  get    "/api/binds/"                       getBindAPIHandler
-  delete "/api/binds/:bind_id"               removeBindAPIHandler
-  get    "/api/service/:service/binds/"      getBindListByServiceAPIHandler
+  get    "/api/binds/"                       getBindHandler
+  delete "/api/binds/:bind_id"               removeBindHandler
+  get    "/api/service/:service/binds/"      getBindListByServiceHandler
 
   get    "/api/graphql/" graphqlHandler
   post   "/api/graphql/" graphqlHandler
