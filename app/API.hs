@@ -109,7 +109,7 @@ application = do
   post   "/api/users/:uidOrName/binds/"      $ requireUser createBindHandler
 
   get    "/api/users/:uidOrName/binds/"      $ requireUser getBindListByUserHandler
-  get    "/api/users/:uidOrName/binds/:service" $ requireUser getBindListByUserAndServiceHandler
+  get    "/api/users/:uidOrName/binds/:service/" $ requireUser getBindListByUserAndServiceHandler
 
   post   "/api/groups/:group/:uidOrName/"    $ requireUser createGroupHandler
   delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupHandler
