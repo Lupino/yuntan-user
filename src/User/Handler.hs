@@ -16,6 +16,7 @@ module User.Handler
   , createBindHandler
   , getBindHandler
   , removeBindHandler
+  , requireBind
   , updateBindExtraHandler
   , getBindListByServiceHandler
   , getBindListByUserHandler
@@ -193,6 +194,26 @@ userListHandler count userList = do
                                   , getResult = users
                                   }
 
+apiBind :: HasMySQL u => ActionH u (Maybe Bind)
+apiBind = do
+  name <- param "bidOrName"
+  user <- lift $ getBindByName (pack name)
+  case user of
+    Just u -> return $ Just u
+    Nothing ->
+      if isDigest name then lift (getBind $ read name)
+                       else return Nothing
+
+requireBind :: HasMySQL u => (Bind -> ActionH u ()) -> ActionH u ()
+requireBind act = do
+  bind <- apiBind
+  case bind of
+    Just b  -> act b
+    Nothing ->  errorBindNotFound
+
+  where errorBindNotFound :: ActionH u ()
+        errorBindNotFound = errNotFound "Bind is not found."
+
 createBindHandler :: HasMySQL u => User -> ActionH u ()
 createBindHandler User{getUserID = uid} = do
   service <- param "service"
@@ -206,16 +227,14 @@ getBindHandler = do
   name <- param "name"
   maybeNotFound "Bind" =<< lift (getBindByName name)
 
-removeBindHandler :: HasMySQL u => ActionH u ()
-removeBindHandler = do
-  bid <- param "bind_id"
+removeBindHandler :: HasMySQL u => Bind -> ActionH u ()
+removeBindHandler Bind{getBindID=bid}= do
   void . lift $ removeBind bid
   resultOK
 
-updateBindExtraHandler :: HasMySQL u => ActionH u ()
-updateBindExtraHandler = do
+updateBindExtraHandler :: HasMySQL u => Bind -> ActionH u ()
+updateBindExtraHandler Bind{getBindID=bid, getBindExtra=oev}= do
   extra <- param "extra"
-  bid <- param "bind_id"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateBindExtra bid $ unionValue ev oev) >> resultOK
     Nothing -> errorExtraRequired
