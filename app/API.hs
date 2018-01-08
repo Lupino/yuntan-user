@@ -116,7 +116,8 @@ application = do
   get    "/api/groups/:group/"               getUserListByGroupHandler
 
   get    "/api/binds/"                       getBindHandler
-  delete "/api/binds/:bind_id"               removeBindHandler
+  delete "/api/binds/:bind_id/"              removeBindHandler
+  post   "/api/binds/:bind_id/"              updateBindExtraHandler
   get    "/api/service/:service/binds/"      getBindListByServiceHandler
 
   post   "/api/graphql/" graphqlHandler

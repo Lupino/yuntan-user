@@ -16,6 +16,7 @@ module User.Handler
   , createBindHandler
   , getBindHandler
   , removeBindHandler
+  , updateBindExtraHandler
   , getBindListByServiceHandler
   , getBindListByUserHandler
   , getBindListByUserAndServiceHandler
@@ -210,6 +211,14 @@ removeBindHandler = do
   bid <- param "bind_id"
   void . lift $ removeBind bid
   resultOK
+
+updateBindExtraHandler :: HasMySQL u => ActionH u ()
+updateBindExtraHandler = do
+  extra <- param "extra"
+  bid <- param "bind_id"
+  case (decode extra :: Maybe Extra) of
+    Just ev -> void (lift $ updateBindExtra bid $ unionValue ev oev) >> resultOK
+    Nothing -> errorExtraRequired
 
 getBindListByServiceHandler :: HasMySQL u => ActionH u ()
 getBindListByServiceHandler = do
