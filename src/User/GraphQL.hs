@@ -13,9 +13,8 @@ module User.GraphQL
 import           Control.Applicative     (Alternative (..))
 import           Data.GraphQL.AST        (Name)
 import           Data.GraphQL.Schema     (Argument (..), Resolver, Schema,
-                                          Value (..), array, arrayA', object',
+                                          Value (..), arrayA', object',
                                           objectA', scalar, scalarA)
-import           Data.Int                (Int32)
 import           Data.List.NonEmpty      (NonEmpty ((:|)), fromList)
 import           Data.Maybe              (fromMaybe)
 import           Data.Text               (Text)
