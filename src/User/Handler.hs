@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 module User.Handler
   (
@@ -30,16 +31,21 @@ module User.Handler
   , graphqlByBindHandler
   , graphqlByUserHandler
   , graphqlByServiceHandler
+
+  , setConfigHandler
+  , getConfigHandler
   ) where
 
 import           Control.Monad           (void)
 import           Control.Monad.Reader    (lift)
 
+import           Data.ByteString         (ByteString)
 import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl)
 import           User
 import           Web.Scotty.Trans        (json, param, rescue)
-import           Yuntan.Types.HasMySQL   (HasMySQL)
+import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv,
+                                          getConfigJSON', otherEnv, setConfig')
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Types.Scotty     (ActionH)
@@ -279,12 +285,12 @@ removeGroupHandler User{getUserID = uid} = do
 resultOK :: ActionH u ()
 resultOK = ok "result" ("OK" :: String)
 
-graphqlHandler :: HasMySQL u => ActionH u ()
+graphqlHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
 graphqlHandler = do
   query <- param "query"
   json =<< lift (graphql schema query)
 
-graphqlByBindHandler :: HasMySQL u => ActionH u ()
+graphqlByBindHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
 graphqlByBindHandler = do
   name <- param "name"
   b <- lift (getBindByName name)
@@ -294,13 +300,26 @@ graphqlByBindHandler = do
       query <- param "query"
       json =<< lift (graphql (schemaByBind b') query)
 
-graphqlByUserHandler :: HasMySQL u => User -> ActionH u ()
+graphqlByUserHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> ActionH u ()
 graphqlByUserHandler u = do
   query <- param "query"
   json =<< lift (graphql (schemaByUser u) query)
 
-graphqlByServiceHandler :: HasMySQL u => ActionH u ()
+graphqlByServiceHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
 graphqlByServiceHandler = do
   query <- param "query"
   srv <- param "service"
   json =<< lift (graphql (schemaByService srv) query)
+
+setConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+setConfigHandler = do
+  k <- param "key"
+  v <- param "value"
+  lift $ setConfig' otherEnv k v
+  resultOK
+
+getConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getConfigHandler = do
+  k <- param "key"
+  v <- lift (getConfigJSON' otherEnv k)
+  json (v :: Maybe Value)

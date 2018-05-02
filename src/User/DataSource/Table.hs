@@ -6,7 +6,8 @@ module User.DataSource.Table
   ) where
 
 import           Database.MySQL.Simple (execute_)
-import           Yuntan.Types.HasMySQL (MySQL, VersionList, mergeDatabase)
+import           Yuntan.Types.HasMySQL (MySQL, VersionList, createConfigTable,
+                                        mergeDatabase)
 
 import           Control.Monad         (void)
 import           Data.String           (fromString)
@@ -70,6 +71,7 @@ versionList =
   , (2, [createGroupTable])
   , (3, [updateTable_1511230647])
   , (4, [updateTable_1515125161])
+  , (5, [createConfigTable])
   ]
 
 mergeData :: MySQL ()
