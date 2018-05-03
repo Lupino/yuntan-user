@@ -12,7 +12,6 @@ module User.GraphQL
   ) where
 
 import           Control.Applicative     (Alternative (..))
-import qualified Data.Aeson              as A (Value)
 import           Data.GraphQL.AST        (Name)
 import           Data.GraphQL.Schema     (Argument (..), Resolver, Schema,
                                           Value (..), arrayA', object',
@@ -23,8 +22,7 @@ import           Data.Text               (Text)
 import           Haxl.Core               (GenHaxl)
 import           User.API
 import           User.Types
-import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv,
-                                          fillValue, otherEnv)
+import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
@@ -87,21 +85,11 @@ schemaByBind b = fromList (bind_ b)
 schemaByService :: (HasMySQL u, HasOtherEnv ConfigLru u) => Service -> Schema (GenHaxl u)
 schemaByService b = fromList (service_ b)
 
-fillUserExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
-fillUserExtra = fillValue otherEnv "user-extra" getUserExtra update
-  where update :: A.Value -> User -> User
-        update v u = u {getUserExtra = v}
-
-fillBindExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe Bind -> GenHaxl u (Maybe Bind)
-fillBindExtra = fillValue otherEnv "bind-extra" getBindExtra update
-  where update :: A.Value -> Bind -> Bind
-        update v u = u {getBindExtra = v}
-
 user :: (HasMySQL u, HasOtherEnv ConfigLru u) => Resolver (GenHaxl u)
 user = objectA' "user" $ \case
-  (Argument "name" (ValueString name):_) -> maybe [] user_ <$> (fillUserExtra =<< getUserByName name)
-  (Argument "name" (ValueEnum name):_)   -> maybe [] user_ <$> (fillUserExtra =<< getUserByName name)
-  (Argument "id" (ValueInt uid):_)       -> maybe [] user_ <$> (fillUserExtra =<< getUser (fromIntegral uid))
+  (Argument "name" (ValueString name):_) -> maybe [] user_ <$> getUserByName name
+  (Argument "name" (ValueEnum name):_)   -> maybe [] user_ <$> getUserByName name
+  (Argument "id" (ValueInt uid):_)       -> maybe [] user_ <$> getUser (fromIntegral uid)
   _ -> empty
 
 user_ :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> [Resolver (GenHaxl u)]
@@ -126,12 +114,12 @@ bind_ Bind{..} = [ scalar "id" getBindID
                  ]
 
 user__ :: (HasMySQL u, HasOtherEnv ConfigLru u) => Name -> UserID -> Resolver (GenHaxl u)
-user__ n uid = object' n $ maybe [] user_ <$> (fillUserExtra =<< getUser uid)
+user__ n uid = object' n $ maybe [] user_ <$> getUser uid
 
 bind :: (HasMySQL u, HasOtherEnv ConfigLru u) => Resolver (GenHaxl u)
 bind = objectA' "bind" $ \case
-  (Argument "name" (ValueString name):_) -> maybe [] bind_ <$> (fillBindExtra =<< getBindByName name)
-  (Argument "name" (ValueEnum name):_)   -> maybe [] bind_ <$> (fillBindExtra =<< getBindByName name)
+  (Argument "name" (ValueString name):_) -> maybe [] bind_ <$> getBindByName name
+  (Argument "name" (ValueEnum name):_)   -> maybe [] bind_ <$> getBindByName name
   _ -> empty
 
 paramPage :: [Argument] -> (From, Size)
