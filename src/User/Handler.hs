@@ -39,11 +39,11 @@ module User.Handler
 import           Control.Monad           (void)
 import           Control.Monad.Reader    (lift)
 
-import           Data.ByteString         (ByteString)
+import           Data.ByteString.Lazy    (toStrict)
 import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl)
 import           User
-import           Web.Scotty.Trans        (json, param, rescue)
+import           Web.Scotty.Trans        (body, json, param, rescue)
 import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv,
                                           getConfigJSON', otherEnv, setConfig')
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
@@ -314,7 +314,7 @@ graphqlByServiceHandler = do
 setConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
 setConfigHandler = do
   k <- param "key"
-  v <- param "value"
+  v <- toStrict <$> body
   lift $ setConfig' otherEnv k v
   resultOK
 
@@ -322,4 +322,4 @@ getConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
 getConfigHandler = do
   k <- param "key"
   v <- lift (getConfigJSON' otherEnv k)
-  json (v :: Maybe Value)
+  ok "result" (v :: Maybe Value)

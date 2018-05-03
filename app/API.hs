@@ -132,3 +132,6 @@ application = do
   post   "/api/binds/:name/graphql/" graphqlByBindHandler
   post   "/api/users/:uidOrName/graphql/" $ requireUser graphqlByUserHandler
   post   "/api/service/:service/graphql/" graphqlByServiceHandler
+
+  get "/api/config/:key/" getConfigHandler
+  post "/api/config/:key/" setConfigHandler
