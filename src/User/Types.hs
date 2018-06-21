@@ -61,16 +61,16 @@ data Bind = Bind { getBindID        :: BindID
   deriving (Show)
 
 instance QueryResults User where
-  convertResults [fa, fb, fc, _,  _,  ff]
+  convertResults [fa, fb, fc, _,  fe,  _]
                  [va, vb, vc, vd, ve, vf] = User{..}
     where !getUserID          = convert fa va
           !getUserName        = convert fb vb
           !getUserPassword    = convert fc vc
           !getUserExtra       = fromMaybe Null . decodeStrict $ fromMaybe "{}" vd
-          !getUserSecureExtra = fromMaybe Null . decodeStrict $ fromMaybe "{}" ve
           !getUserBinds       = []
           !getUserGroups      = []
-          !getUserCreatedAt   = convert ff vf
+          !getUserCreatedAt   = convert fe ve
+          !getUserSecureExtra = fromMaybe Null . decodeStrict $ fromMaybe "{}" vf
   convertResults fs vs  = convertError fs vs 2
 
 instance QueryResults Bind where
