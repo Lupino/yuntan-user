@@ -27,6 +27,7 @@ import           Data.Aeson                         (ToJSON (..), Value (..),
 import           Data.Int                           (Int64)
 import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
+import           Yuntan.Utils.JSON                  (unionValue)
 
 type UserID      = Int64
 type BindID      = Int64
@@ -39,13 +40,14 @@ type Extra       = Value
 type CreatedAt   = Int64
 type TablePrefix = String
 
-data User = User { getUserID        :: UserID
-                 , getUserName      :: UserName
-                 , getUserPassword  :: Password
-                 , getUserExtra     :: Extra
-                 , getUserBinds     :: [Bind]
-                 , getUserGroups    :: [GroupName]
-                 , getUserCreatedAt :: CreatedAt
+data User = User { getUserID          :: UserID
+                 , getUserName        :: UserName
+                 , getUserPassword    :: Password
+                 , getUserExtra       :: Extra
+                 , getUserSecureExtra :: Extra
+                 , getUserBinds       :: [Bind]
+                 , getUserGroups      :: [GroupName]
+                 , getUserCreatedAt   :: CreatedAt
                  }
   deriving (Show)
 
@@ -59,15 +61,16 @@ data Bind = Bind { getBindID        :: BindID
   deriving (Show)
 
 instance QueryResults User where
-  convertResults [fa, fb, fc, _, fe]
-                 [va, vb, vc, vd, ve] = User{..}
-    where !getUserID        = convert fa va
-          !getUserName      = convert fb vb
-          !getUserPassword  = convert fc vc
-          !getUserExtra     = fromMaybe Null . decodeStrict $ fromMaybe "{}" vd
-          !getUserBinds     = []
-          !getUserGroups    = []
-          !getUserCreatedAt = convert fe ve
+  convertResults [fa, fb, fc, _,  _,  ff]
+                 [va, vb, vc, vd, ve, vf] = User{..}
+    where !getUserID          = convert fa va
+          !getUserName        = convert fb vb
+          !getUserPassword    = convert fc vc
+          !getUserExtra       = fromMaybe Null . decodeStrict $ fromMaybe "{}" vd
+          !getUserSecureExtra = fromMaybe Null . decodeStrict $ fromMaybe "{}" ve
+          !getUserBinds       = []
+          !getUserGroups      = []
+          !getUserCreatedAt   = convert ff vf
   convertResults fs vs  = convertError fs vs 2
 
 instance QueryResults Bind where
@@ -84,7 +87,7 @@ instance QueryResults Bind where
 instance ToJSON User where
   toJSON User{..} = object [ "id"         .= getUserID
                            , "name"       .= getUserName
-                           , "extra"      .= getUserExtra
+                           , "extra"      .= unionValue getUserSecureExtra getUserExtra
                            , "binds"      .= getUserBinds
                            , "groups"     .= getUserGroups
                            , "created_at" .= getUserCreatedAt

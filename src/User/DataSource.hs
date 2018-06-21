@@ -46,6 +46,7 @@ data UserReq a where
   UpdateUserName     :: UserID -> UserName -> UserReq Int64
   UpdateUserPassword :: UserID -> Password -> UserReq Int64
   UpdateUserExtra    :: UserID -> Extra -> UserReq Int64
+  UpdateUserSecureExtra :: UserID -> Extra -> UserReq Int64
   GetUsers           :: From -> Size -> OrderBy -> UserReq [User]
   CountUser          :: UserReq Int64
 
@@ -82,6 +83,7 @@ instance Hashable (UserReq a) where
   hashWithSalt s (UpdateUserName k n)     = hashWithSalt s (4::Int, k, n)
   hashWithSalt s (UpdateUserPassword k p) = hashWithSalt s (5::Int, k, p)
   hashWithSalt s (UpdateUserExtra k ex)   = hashWithSalt s (6::Int, k, ex)
+  hashWithSalt s (UpdateUserSecureExtra k ex) = hashWithSalt s (6::Int, k, ex)
   hashWithSalt s (GetUsers f si o)        = hashWithSalt s (7::Int, f, si, o)
   hashWithSalt s CountUser                = hashWithSalt s (8::Int)
 
@@ -154,6 +156,7 @@ fetchReq  (RemoveUser k)                  = removeUser k
 fetchReq  (UpdateUserName k s)            = updateUserName k s
 fetchReq  (UpdateUserPassword k p)        = updateUserPassword k  p
 fetchReq  (UpdateUserExtra k e)           = updateUserExtra k e
+fetchReq  (UpdateUserSecureExtra k e)     = updateUserSecureExtra k e
 fetchReq  (GetUsers f s o)                = getUsers f s o
 fetchReq  CountUser                       = countUser
 

@@ -65,6 +65,13 @@ updateTable_1515125161 prefix conn =
     , "  ADD INDEX `user_service` (`user_id`, `service`)"
     ]
 
+updateTable_20180620 :: MySQL ()
+updateTable_20180620 prefix conn =
+  void $ execute_ conn . fromString $ concat
+    [ "ALTER TABLE `", prefix, "_users`"
+    , " ADD COLUMN `secure_extra` TEXT DEFAULT NULL"
+    ]
+
 versionList :: VersionList
 versionList =
   [ (1, [createUserTable, createBindTable])
@@ -72,6 +79,7 @@ versionList =
   , (3, [updateTable_1511230647])
   , (4, [updateTable_1515125161])
   , (5, [createConfigTable])
+  , (6, [updateTable_20180620])
   ]
 
 mergeData :: MySQL ()

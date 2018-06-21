@@ -112,6 +112,9 @@ application = do
   post   "/api/users/:uidOrName/extra"       $ requireUser updateUserExtraHandler
   delete "/api/users/:uidOrName/extra"       $ requireUser removeUserExtraHandler
   post   "/api/users/:uidOrName/extra/clear" $ requireUser clearUserExtraHandler
+  post   "/api/users/:uidOrName/secure_extra"       $ requireUser updateUserSecureExtraHandler
+  delete "/api/users/:uidOrName/secure_extra"       $ requireUser removeUserSecureExtraHandler
+  post   "/api/users/:uidOrName/secure_extra/clear" $ requireUser clearUserSecureExtraHandler
   post   "/api/users/:uidOrName/verify"      $ requireUser verifyPasswordHandler
 
   post   "/api/users/:uidOrName/binds/"      $ requireUser createBindHandler

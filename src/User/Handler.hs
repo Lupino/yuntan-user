@@ -11,6 +11,9 @@ module User.Handler
   , updateUserExtraHandler
   , removeUserExtraHandler
   , clearUserExtraHandler
+  , updateUserSecureExtraHandler
+  , removeUserSecureExtraHandler
+  , clearUserSecureExtraHandler
   , getUsersHandler
   , verifyPasswordHandler
 
@@ -170,6 +173,23 @@ clearUserExtraHandler :: HasMySQL u => User -> ActionH u ()
 clearUserExtraHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
+updateUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+updateUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
+  extra <- param "extra"
+  case (decode extra :: Maybe Extra) of
+    Just ev -> void (lift $ updateUserSecureExtra uid $ unionValue ev oev) >> resultOK
+    Nothing -> errorExtraRequired
+
+removeUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+removeUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
+  extra <- param "extra"
+  case decode extra :: Maybe Value of
+    Just ev -> void (lift $ updateUserSecureExtra uid $ differenceValue oev ev) >> resultOK
+    Nothing -> errorExtraRequired
+
+clearUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+clearUserSecureExtraHandler User{getUserID = uid} =
+  void (lift $ updateUserSecureExtra uid Null) >> resultOK
 
 flip' :: (a -> b -> c -> d) -> c -> a -> b -> d
 flip' f c a b = f a b c

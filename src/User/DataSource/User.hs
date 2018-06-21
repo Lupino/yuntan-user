@@ -9,6 +9,7 @@ module User.DataSource.User
   , updateUserName
   , updateUserPassword
   , updateUserExtra
+  , updateUserSecureExtra
   , countUser
   , getUsers
   ) where
@@ -63,6 +64,10 @@ updateUserPassword uid passwd prefix conn = execute conn sql (passwd, uid)
 updateUserExtra :: UserID -> Extra -> MySQL Int64
 updateUserExtra uid extra prefix conn = execute conn sql (encode extra, uid)
   where sql = fromString $ concat [ "UPDATE `", prefix, "_users` SET `extra` = ? WHERE `id`=?"]
+
+updateUserSecureExtra :: UserID -> Extra -> MySQL Int64
+updateUserSecureExtra uid extra prefix conn = execute conn sql (encode extra, uid)
+  where sql = fromString $ concat [ "UPDATE `", prefix, "_users` SET `secure_extra` = ? WHERE `id`=?"]
 
 countUser :: MySQL Int64
 countUser prefix conn = maybe 0 fromOnly . listToMaybe <$> query_ conn sql

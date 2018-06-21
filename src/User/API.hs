@@ -9,6 +9,7 @@ module User.API
   , updateUserName
   , updateUserPassword
   , updateUserExtra
+  , updateUserSecureExtra
   , countUser
   , getUsers
 
@@ -58,21 +59,23 @@ removeUser         :: HasMySQL u => UserID -> GenHaxl u Int64
 updateUserName     :: HasMySQL u => UserID -> UserName -> GenHaxl u Int64
 updateUserPassword :: HasMySQL u => UserID -> Password -> GenHaxl u Int64
 updateUserExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
+updateUserSecureExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
 getUsers
   :: (HasMySQL u, HasOtherEnv ConfigLru u)
   => From -> Size -> OrderBy -> GenHaxl u [User]
 countUser          :: HasMySQL u => GenHaxl u Int64
 
 createUser name passwd        = uncachedRequest (CreateUser name passwd)
-getUser uid                   = fillUserExtra =<< fillGroups =<< fillBinds =<< dataFetch (GetUser uid)
-getUserByName name            = fillUserExtra =<< fillGroups =<< fillBinds =<< dataFetch (GetUserByName name)
+getUser uid                   = fillUser =<< dataFetch (GetUser uid)
+getUserByName name            = fillUser =<< dataFetch (GetUserByName name)
 removeUser uid                = uncachedRequest (RemoveUser uid)
 updateUserName uid name       = uncachedRequest (UpdateUserName uid name)
 updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
 updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
+updateUserSecureExtra uid extra     = uncachedRequest (UpdateUserSecureExtra uid extra)
 getUsers from size order      = do
   users <- dataFetch (GetUsers from size order)
-  catMaybes <$> for users (\user -> fillUserExtra =<< fillGroups =<< fillBinds (Just user))
+  catMaybes <$> for users (\user -> fillUser (Just user))
 
 countUser                     = dataFetch CountUser
 
@@ -155,6 +158,11 @@ fillUserExtra = fillValue otherEnv "user-extra" getUserExtra update
   where update :: Value -> User -> User
         update v u = u {getUserExtra = v}
 
+fillUserSecureExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
+fillUserSecureExtra = fillValue otherEnv "user-secure-extra" getUserSecureExtra update
+  where update :: Value -> User -> User
+        update v u = u {getUserSecureExtra = v}
+
 fillBindExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe Bind -> GenHaxl u (Maybe Bind)
 fillBindExtra = fillValue otherEnv "bind-extra" getBindExtra update
   where update :: Value -> Bind -> Bind
@@ -167,3 +175,6 @@ fillBindExtra_ = fillValue_ otherEnv "bind-extra" getBindExtra update
 
 fillAllBindExtra_ :: (HasMySQL u, HasOtherEnv ConfigLru u) => [Bind] -> GenHaxl u [Bind]
 fillAllBindExtra_ = mapM fillBindExtra_
+
+fillUser :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
+fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
