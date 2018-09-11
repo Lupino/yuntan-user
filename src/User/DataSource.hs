@@ -72,42 +72,52 @@ data UserReq a where
   RemoveGroupListByUserID :: UserID -> UserReq Int64
   CountGroup              :: GroupName -> UserReq Int64
 
+  SaveGroupMeta    :: GroupName -> GroupTitle -> GroupSummary -> UserReq Int64
+  GetGroupMeta     :: GroupName -> UserReq (Maybe GroupMeta)
+  RemoveGroupMeta  :: GroupName -> UserReq Int64
+  GetGroupMetaList :: UserReq [GroupMeta]
+
   deriving (Typeable)
 
 deriving instance Eq (UserReq a)
 instance Hashable (UserReq a) where
-  hashWithSalt s (CreateUser n h)         = hashWithSalt s (0::Int, n, h)
-  hashWithSalt s (GetUser k)              = hashWithSalt s (1::Int, k)
-  hashWithSalt s (GetUserByName k)        = hashWithSalt s (2::Int, k)
-  hashWithSalt s (RemoveUser k)           = hashWithSalt s (3::Int, k)
-  hashWithSalt s (UpdateUserName k n)     = hashWithSalt s (4::Int, k, n)
-  hashWithSalt s (UpdateUserPassword k p) = hashWithSalt s (5::Int, k, p)
-  hashWithSalt s (UpdateUserExtra k ex)   = hashWithSalt s (6::Int, k, ex)
-  hashWithSalt s (UpdateUserSecureExtra k ex) = hashWithSalt s (6::Int, k, ex)
-  hashWithSalt s (GetUsers f si o)        = hashWithSalt s (7::Int, f, si, o)
-  hashWithSalt s CountUser                = hashWithSalt s (8::Int)
+  hashWithSalt s (CreateUser n h)                           = hashWithSalt s (0::Int, n, h)
+  hashWithSalt s (GetUser k)                                = hashWithSalt s (1::Int, k)
+  hashWithSalt s (GetUserByName k)                          = hashWithSalt s (2::Int, k)
+  hashWithSalt s (RemoveUser k)                             = hashWithSalt s (3::Int, k)
+  hashWithSalt s (UpdateUserName k n)                       = hashWithSalt s (4::Int, k, n)
+  hashWithSalt s (UpdateUserPassword k p)                   = hashWithSalt s (5::Int, k, p)
+  hashWithSalt s (UpdateUserExtra k ex)                     = hashWithSalt s (6::Int, k, ex)
+  hashWithSalt s (UpdateUserSecureExtra k ex)               = hashWithSalt s (7::Int, k, ex)
+  hashWithSalt s (GetUsers f si o)                          = hashWithSalt s (8::Int, f, si, o)
+  hashWithSalt s CountUser                                  = hashWithSalt s (9::Int)
 
-  hashWithSalt s (CreateBind uid se n ex) = hashWithSalt s (10::Int, uid, se, n, ex)
-  hashWithSalt s (GetBind bid)            = hashWithSalt s (11::Int, bid)
-  hashWithSalt s (GetBindByName n)        = hashWithSalt s (12::Int, n)
-  hashWithSalt s (RemoveBind bid)         = hashWithSalt s (13::Int, bid)
-  hashWithSalt s (UpdateBindExtra bid ex) = hashWithSalt s (14::Int, bid, ex)
-  hashWithSalt s (CountBindByUID uid)     = hashWithSalt s (15::Int, uid)
-  hashWithSalt s (GetBindListByUID uid f i o) = hashWithSalt s (16::Int, uid, f, i, o)
-  hashWithSalt s (CountBindByService srv) = hashWithSalt s (15::Int, srv)
-  hashWithSalt s (GetBindListByService srv f i o) = hashWithSalt s (16::Int, srv, f, i, o)
-  hashWithSalt s (CountBindByUIDAndService uid srv) = hashWithSalt s (15::Int, uid, srv)
-  hashWithSalt s (GetBindListByUIDAndService uid srv f i o) = hashWithSalt s (16::Int, uid, srv, f, i, o)
-  hashWithSalt s (RemoveBindByUID uid)    = hashWithSalt s (17::Int, uid)
+  hashWithSalt s (CreateBind uid se n ex)                   = hashWithSalt s (10::Int, uid, se, n, ex)
+  hashWithSalt s (GetBind bid)                              = hashWithSalt s (11::Int, bid)
+  hashWithSalt s (GetBindByName n)                          = hashWithSalt s (12::Int, n)
+  hashWithSalt s (RemoveBind bid)                           = hashWithSalt s (13::Int, bid)
+  hashWithSalt s (UpdateBindExtra bid ex)                   = hashWithSalt s (14::Int, bid, ex)
+  hashWithSalt s (CountBindByUID uid)                       = hashWithSalt s (15::Int, uid)
+  hashWithSalt s (GetBindListByUID uid f i o)               = hashWithSalt s (16::Int, uid, f, i, o)
+  hashWithSalt s (CountBindByService srv)                   = hashWithSalt s (17::Int, srv)
+  hashWithSalt s (GetBindListByService srv f i o)           = hashWithSalt s (18::Int, srv, f, i, o)
+  hashWithSalt s (CountBindByUIDAndService uid srv)         = hashWithSalt s (19::Int, uid, srv)
+  hashWithSalt s (GetBindListByUIDAndService uid srv f i o) = hashWithSalt s (20::Int, uid, srv, f, i, o)
+  hashWithSalt s (RemoveBindByUID uid)                      = hashWithSalt s (21::Int, uid)
 
-  hashWithSalt s MergeData                = hashWithSalt s (20::Int)
+  hashWithSalt s MergeData                                  = hashWithSalt s (22::Int)
 
-  hashWithSalt s (AddGroup n uid)                = hashWithSalt s (21::Int, n, uid)
-  hashWithSalt s (RemoveGroup n uid)             = hashWithSalt s (22::Int, n, uid)
-  hashWithSalt s (GetGroupListByUserID uid)      = hashWithSalt s (23::Int, uid)
-  hashWithSalt s (GetUserIDListByGroup n f si o) = hashWithSalt s (24::Int, n, f, si, o)
-  hashWithSalt s (RemoveGroupListByUserID uid)   = hashWithSalt s (25::Int, uid)
-  hashWithSalt s (CountGroup n)                  = hashWithSalt s (26::Int, n)
+  hashWithSalt s (AddGroup n uid)                           = hashWithSalt s (23::Int, n, uid)
+  hashWithSalt s (RemoveGroup n uid)                        = hashWithSalt s (24::Int, n, uid)
+  hashWithSalt s (GetGroupListByUserID uid)                 = hashWithSalt s (25::Int, uid)
+  hashWithSalt s (GetUserIDListByGroup n f si o)            = hashWithSalt s (26::Int, n, f, si, o)
+  hashWithSalt s (RemoveGroupListByUserID uid)              = hashWithSalt s (27::Int, uid)
+  hashWithSalt s (CountGroup n)                             = hashWithSalt s (28::Int, n)
+
+  hashWithSalt s (SaveGroupMeta n t c)                      = hashWithSalt s (29::Int, n, t, c)
+  hashWithSalt s (GetGroupMeta n)                           = hashWithSalt s (30::Int, n)
+  hashWithSalt s (RemoveGroupMeta n)                        = hashWithSalt s (31::Int, n)
+  hashWithSalt s GetGroupMetaList                           = hashWithSalt s (32::Int)
 
 deriving instance Show (UserReq a)
 instance ShowP UserReq where showp = show
@@ -181,6 +191,10 @@ fetchReq (GetGroupListByUserID uid)       = getGroupListByUserID uid
 fetchReq (GetUserIDListByGroup n f s o)   = getUserIDListByGroup n f s o
 fetchReq (RemoveGroupListByUserID uid)    = removeGroupListByUserID uid
 fetchReq (CountGroup n)                   = countGroup n
+fetchReq (SaveGroupMeta n t s)            = saveGroupMeta n t s
+fetchReq (GetGroupMeta n)                 = getGroupMeta n
+fetchReq (RemoveGroupMeta n)              = removeGroupMeta n
+fetchReq GetGroupMetaList                 = getGroupMetaList
 
 
 initUserState :: Int -> State UserReq

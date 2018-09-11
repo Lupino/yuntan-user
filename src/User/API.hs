@@ -35,6 +35,11 @@ module User.API
   , getGroupListByUserID
   , getUserListByGroup
   , countGroup
+
+  , saveGroupMeta
+  , getGroupMeta
+  , removeGroupMeta
+  , getGroupMetaList
   ) where
 
 import           Data.Int                (Int64)
@@ -178,3 +183,13 @@ fillAllBindExtra_ = mapM fillBindExtra_
 
 fillUser :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
 fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
+
+saveGroupMeta    :: HasMySQL u => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u Int64
+getGroupMeta     :: HasMySQL u => GroupName -> GenHaxl u (Maybe GroupMeta)
+removeGroupMeta  :: HasMySQL u => GroupName -> GenHaxl u Int64
+getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
+
+saveGroupMeta n t s = uncachedRequest (SaveGroupMeta n t s)
+getGroupMeta n      = dataFetch (GetGroupMeta n)
+removeGroupMeta n   = uncachedRequest (RemoveGroupMeta n)
+getGroupMetaList    = dataFetch GetGroupMetaList

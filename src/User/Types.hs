@@ -10,6 +10,9 @@ module User.Types
   , Password
   , BindID
   , GroupName
+  , GroupTitle
+  , GroupSummary
+  , GroupMeta (..)
   , Service
   , ServiceName
   , CreatedAt
@@ -29,16 +32,18 @@ import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
 import           Yuntan.Utils.JSON                  (unionValue)
 
-type UserID      = Int64
-type BindID      = Int64
-type UserName    = Text
-type Password    = Text
-type Service     = Text
-type ServiceName = Text
-type GroupName   = Text
-type Extra       = Value
-type CreatedAt   = Int64
-type TablePrefix = String
+type UserID       = Int64
+type BindID       = Int64
+type UserName     = Text
+type Password     = Text
+type Service      = Text
+type ServiceName  = Text
+type GroupName    = Text
+type GroupTitle   = String
+type GroupSummary = String
+type Extra        = Value
+type CreatedAt    = Int64
+type TablePrefix  = String
 
 data User = User { getUserID          :: UserID
                  , getUserName        :: UserName
@@ -58,6 +63,14 @@ data Bind = Bind { getBindID        :: BindID
                  , getBindExtra     :: Extra
                  , getBindCreatedAt :: CreatedAt
                  }
+  deriving (Show)
+
+data GroupMeta = GroupMeta
+  { getGroup          :: GroupName
+  , getGroupTitle     :: GroupTitle
+  , getGroupSummary   :: GroupSummary
+  , getGroupCreatedAt :: CreatedAt
+  }
   deriving (Show)
 
 instance QueryResults User where
@@ -84,6 +97,15 @@ instance QueryResults Bind where
           !getBindCreatedAt = convert ff vf
   convertResults fs vs  = convertError fs vs 2
 
+instance QueryResults GroupMeta where
+  convertResults [fa, fb, fc, fd]
+                 [va, vb, vc, vd] = GroupMeta{..}
+    where !getGroup          = convert fa va
+          !getGroupTitle     = convert fb vb
+          !getGroupSummary   = convert fc vc
+          !getGroupCreatedAt = convert fd vd
+  convertResults fs vs  = convertError fs vs 2
+
 instance ToJSON User where
   toJSON User{..} = object [ "id"         .= getUserID
                            , "name"       .= getUserName
@@ -101,3 +123,11 @@ instance ToJSON Bind where
                            , "extra"      .= getBindExtra
                            , "created_at" .= getBindCreatedAt
                            ]
+
+instance ToJSON GroupMeta where
+  toJSON GroupMeta{..} = object
+    [ "group"      .= getGroup
+    , "title"      .= getGroupTitle
+    , "summary"    .= getGroupSummary
+    , "created_at" .= getGroupCreatedAt
+    ]

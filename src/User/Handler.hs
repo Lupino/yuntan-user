@@ -30,6 +30,11 @@ module User.Handler
   , removeGroupHandler
   , getUserListByGroupHandler
 
+  , saveGroupMetaHandler
+  , getGroupMetaHandler
+  , getGroupMetaListHandler
+  , removeGroupMetaHandler
+
   , graphqlHandler
   , graphqlByBindHandler
   , graphqlByUserHandler
@@ -301,6 +306,28 @@ removeGroupHandler User{getUserID = uid} = do
   group <- param "group"
   void . lift $ removeGroup group uid
   resultOK
+
+saveGroupMetaHandler :: HasMySQL u => ActionH u ()
+saveGroupMetaHandler = do
+  group <- param "group"
+  title <- param "title"
+  summary <- param "summary"
+  void . lift $ saveGroupMeta group title summary
+  resultOK
+
+getGroupMetaHandler :: HasMySQL u => ActionH u ()
+getGroupMetaHandler = do
+  group <- param "group"
+  maybeNotFound "GroupMeta" =<< lift (getGroupMeta group)
+
+removeGroupMetaHandler :: HasMySQL u => ActionH u ()
+removeGroupMetaHandler = do
+  group <- param "group"
+  void . lift $ removeGroupMeta group
+  resultOK
+
+getGroupMetaListHandler :: HasMySQL u => ActionH u ()
+getGroupMetaListHandler = json =<< lift getGroupMetaList
 
 resultOK :: ActionH u ()
 resultOK = ok "result" ("OK" :: String)

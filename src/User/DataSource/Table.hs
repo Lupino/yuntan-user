@@ -49,6 +49,17 @@ createGroupTable prefix conn = void $ execute_ conn sql
                                   , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
                                   ]
 
+createGroupMetaTable :: MySQL ()
+createGroupMetaTable prefix conn = void $ execute_ conn sql
+  where sql = fromString $ concat [ "CREATE TABLE IF NOT EXISTS `", prefix, "_group_meta` ("
+                                  , "  `group` varchar(128) NOT NULL,"
+                                  , "  `title` varchar(256) NOT NULL,"
+                                  , "  `summary` varchar(1500) DEFAULT NULL,"
+                                  , "  `created_at` int(10) unsigned NOT NULL,"
+                                  , "  PRIMARY KEY (`group`)"
+                                  , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
+                                  ]
+
 updateTable_1511230647 :: MySQL ()
 updateTable_1511230647 prefix conn =
   void $ execute_ conn . fromString $ concat
@@ -80,6 +91,7 @@ versionList =
   , (4, [updateTable_1515125161])
   , (5, [createConfigTable])
   , (6, [updateTable_20180620])
+  , (7, [createGroupMetaTable])
   ]
 
 mergeData :: MySQL ()

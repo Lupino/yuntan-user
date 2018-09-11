@@ -126,6 +126,11 @@ application = do
   delete "/api/groups/:group/:uidOrName/"    $ requireUser removeGroupHandler
   get    "/api/groups/:group/"               getUserListByGroupHandler
 
+  get    "/api/groupmeta/"                   getGroupMetaListHandler
+  post   "/api/groupmeta/:group/"            saveGroupMetaHandler
+  get    "/api/groupmeta/:group/"            getGroupMetaHandler
+  delete "/api/groupmeta/:group/"            removeGroupMetaHandler
+
   get    "/api/binds/"                       getBindHandler
   delete "/api/binds/:bidOrName/"            $ requireBind removeBindHandler
   post   "/api/binds/:bidOrName/"            $ requireBind updateBindExtraHandler
