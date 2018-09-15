@@ -190,6 +190,15 @@ removeGroupMeta  :: HasMySQL u => GroupName -> GenHaxl u Int64
 getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
 
 saveGroupMeta n t s = uncachedRequest (SaveGroupMeta n t s)
-getGroupMeta n      = dataFetch (GetGroupMeta n)
+getGroupMeta n      = fillGroupUserCount =<< dataFetch (GetGroupMeta n)
 removeGroupMeta n   = uncachedRequest (RemoveGroupMeta n)
-getGroupMetaList    = dataFetch GetGroupMetaList
+getGroupMetaList    = do
+  gs <- dataFetch GetGroupMetaList
+  catMaybes <$> for gs (\g -> fillGroupUserCount (Just g))
+
+fillGroupUserCount :: HasMySQL u => Maybe GroupMeta -> GenHaxl u (Maybe GroupMeta)
+fillGroupUserCount (Just g@GroupMeta{getGroup = group}) = do
+  uc <- countGroup group
+  return (Just g {getGroupUserCount = uc})
+
+fillGroupUserCount Nothing = return Nothing

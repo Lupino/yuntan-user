@@ -69,6 +69,7 @@ data GroupMeta = GroupMeta
   { getGroup          :: GroupName
   , getGroupTitle     :: GroupTitle
   , getGroupSummary   :: GroupSummary
+  , getGroupUserCount :: Int64
   , getGroupCreatedAt :: CreatedAt
   }
   deriving (Show)
@@ -103,6 +104,7 @@ instance QueryResults GroupMeta where
     where !getGroup          = convert fa va
           !getGroupTitle     = convert fb vb
           !getGroupSummary   = convert fc vc
+          !getGroupUserCount = 0
           !getGroupCreatedAt = convert fd vd
   convertResults fs vs  = convertError fs vs 2
 
@@ -129,5 +131,6 @@ instance ToJSON GroupMeta where
     [ "group"      .= getGroup
     , "title"      .= getGroupTitle
     , "summary"    .= getGroupSummary
+    , "user_count" .= getGroupUserCount
     , "created_at" .= getGroupCreatedAt
     ]
