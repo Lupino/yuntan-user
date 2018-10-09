@@ -42,12 +42,14 @@ data UserReq a where
   CreateUser         :: UserName -> Password -> UserReq UserID
   GetUser            :: UserID -> UserReq (Maybe User)
   GetUserByName      :: UserName -> UserReq (Maybe User)
+  GetUserIdByName    :: UserName -> UserReq (Maybe UserID)
   RemoveUser         :: UserID -> UserReq Int64
   UpdateUserName     :: UserID -> UserName -> UserReq Int64
   UpdateUserPassword :: UserID -> Password -> UserReq Int64
   UpdateUserExtra    :: UserID -> Extra -> UserReq Int64
   UpdateUserSecureExtra :: UserID -> Extra -> UserReq Int64
   GetUsers           :: From -> Size -> OrderBy -> UserReq [User]
+  GetUserIdList      :: From -> Size -> OrderBy -> UserReq [UserID]
   CountUser          :: UserReq Int64
 
   CreateBind         :: UserID -> Service -> ServiceName -> Extra -> UserReq BindID
@@ -84,12 +86,14 @@ instance Hashable (UserReq a) where
   hashWithSalt s (CreateUser n h)                           = hashWithSalt s (0::Int, n, h)
   hashWithSalt s (GetUser k)                                = hashWithSalt s (1::Int, k)
   hashWithSalt s (GetUserByName k)                          = hashWithSalt s (2::Int, k)
+  hashWithSalt s (GetUserIdByName k)                        = hashWithSalt s (2::Int, k)
   hashWithSalt s (RemoveUser k)                             = hashWithSalt s (3::Int, k)
   hashWithSalt s (UpdateUserName k n)                       = hashWithSalt s (4::Int, k, n)
   hashWithSalt s (UpdateUserPassword k p)                   = hashWithSalt s (5::Int, k, p)
   hashWithSalt s (UpdateUserExtra k ex)                     = hashWithSalt s (6::Int, k, ex)
   hashWithSalt s (UpdateUserSecureExtra k ex)               = hashWithSalt s (7::Int, k, ex)
   hashWithSalt s (GetUsers f si o)                          = hashWithSalt s (8::Int, f, si, o)
+  hashWithSalt s (GetUserIdList f si o)                     = hashWithSalt s (8::Int, f, si, o)
   hashWithSalt s CountUser                                  = hashWithSalt s (9::Int)
 
   hashWithSalt s (CreateBind uid se n ex)                   = hashWithSalt s (10::Int, uid, se, n, ex)
@@ -162,12 +166,14 @@ fetchReq :: UserReq a -> MySQL a
 fetchReq  (CreateUser n h)                = createUser n h
 fetchReq  (GetUser k)                     = getUser k
 fetchReq  (GetUserByName k)               = getUserByName k
+fetchReq  (GetUserIdByName k)             = getUserIdByName k
 fetchReq  (RemoveUser k)                  = removeUser k
 fetchReq  (UpdateUserName k s)            = updateUserName k s
 fetchReq  (UpdateUserPassword k p)        = updateUserPassword k  p
 fetchReq  (UpdateUserExtra k e)           = updateUserExtra k e
 fetchReq  (UpdateUserSecureExtra k e)     = updateUserSecureExtra k e
 fetchReq  (GetUsers f s o)                = getUsers f s o
+fetchReq  (GetUserIdList f s o)           = getUserIdList f s o
 fetchReq  CountUser                       = countUser
 
 fetchReq (CreateBind uid se n ex)         = createBind uid se n ex

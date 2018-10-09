@@ -5,6 +5,7 @@ module User.DataSource.User
     createUser
   , getUser
   , getUserByName
+  , getUserIdByName
   , removeUser
   , updateUserName
   , updateUserPassword
@@ -12,6 +13,7 @@ module User.DataSource.User
   , updateUserSecureExtra
   , countUser
   , getUsers
+  , getUserIdList
   ) where
 
 import           Control.Monad           (void)
@@ -49,6 +51,11 @@ getUserByName :: UserName -> MySQL (Maybe User)
 getUserByName name prefix conn = listToMaybe <$> query conn sql (Only name)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` WHERE `username`=?"]
 
+getUserIdByName :: UserName -> MySQL (Maybe UserID)
+getUserIdByName name prefix conn =
+  maybe Nothing (Just . fromOnly) . listToMaybe <$> query conn sql (Only name)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_users` WHERE `username`=?"]
+
 removeUser :: UserID -> MySQL Int64
 removeUser uid prefix conn = execute conn sql (Only uid)
   where sql = fromString $ concat [ "DELETE FROM `", prefix, "_users` WHERE `id`=?"]
@@ -76,3 +83,7 @@ countUser prefix conn = maybe 0 fromOnly . listToMaybe <$> query_ conn sql
 getUsers :: From -> Size -> OrderBy -> MySQL [User]
 getUsers from size o prefix conn = query conn sql (from, size)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` ", show o, " LIMIT ?,?" ]
+
+getUserIdList :: From -> Size -> OrderBy -> MySQL [UserID]
+getUserIdList from size o prefix conn = map fromOnly <$> query conn sql (from, size)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_users` ", show o, " LIMIT ?,?" ]

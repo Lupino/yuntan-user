@@ -138,7 +138,7 @@ removeUserHandler :: HasMySQL u => User -> ActionH u ()
 removeUserHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBindByUID uid
-  void . lift $ removeGroupListByUserID uid
+  void . lift $ removeGroupListByUserId uid
   resultOK
 
 updateUserNameHandler :: HasMySQL u => User -> ActionH u ()
