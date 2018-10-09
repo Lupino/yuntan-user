@@ -4,7 +4,6 @@ module User.DataSource.User
   (
     createUser
   , getUser
-  , getUserByName
   , getUserIdByName
   , removeUser
   , updateUserName
@@ -12,7 +11,6 @@ module User.DataSource.User
   , updateUserExtra
   , updateUserSecureExtra
   , countUser
-  , getUsers
   , getUserIdList
   ) where
 
@@ -47,10 +45,6 @@ getUser :: UserID -> MySQL (Maybe User)
 getUser uid prefix conn = listToMaybe <$> query conn sql (Only uid)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` WHERE `id`=?"]
 
-getUserByName :: UserName -> MySQL (Maybe User)
-getUserByName name prefix conn = listToMaybe <$> query conn sql (Only name)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` WHERE `username`=?"]
-
 getUserIdByName :: UserName -> MySQL (Maybe UserID)
 getUserIdByName name prefix conn =
   maybe Nothing (Just . fromOnly) . listToMaybe <$> query conn sql (Only name)
@@ -79,10 +73,6 @@ updateUserSecureExtra uid extra prefix conn = execute conn sql (encode extra, ui
 countUser :: MySQL Int64
 countUser prefix conn = maybe 0 fromOnly . listToMaybe <$> query_ conn sql
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_users`" ]
-
-getUsers :: From -> Size -> OrderBy -> MySQL [User]
-getUsers from size o prefix conn = query conn sql (from, size)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_users` ", show o, " LIMIT ?,?" ]
 
 getUserIdList :: From -> Size -> OrderBy -> MySQL [UserID]
 getUserIdList from size o prefix conn = map fromOnly <$> query conn sql (from, size)
