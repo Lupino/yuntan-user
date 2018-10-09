@@ -1,16 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module User.API
-  (
-    createUser
-  , getUser
+  ( getUser
   , getUserByName
   , removeUser
   , updateUserName
   , updateUserPassword
   , updateUserExtra
   , updateUserSecureExtra
-  , countUser
   , getUsers
 
   , createBind
@@ -18,107 +15,121 @@ module User.API
   , getBindByName
   , removeBind
   , updateBindExtra
-  , countBindByUID
   , getBindListByUID
-  , countBindByService
   , getBindListByService
-  , countBindByUIDAndService
   , getBindListByUIDAndService
   , removeBindByUID
-
-  , mergeData
 
   , addGroup
   , removeGroup
   , removeGroupListByUserId
-  , getUserIdListByGroup
-  , getGroupListByUserId
   , getUserListByGroup
-  , countGroup
 
-  , saveGroupMeta
   , getGroupMeta
-  , removeGroupMeta
   , getGroupMetaList
+  , module X
   ) where
 
+import           Control.Monad.Extra     (maybeM)
 import           Data.Aeson              (Value)
+import           Data.ByteString         (ByteString)
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
+import           Data.String             (fromString)
 import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
 import           User.Config             (Cache, lruEnv)
+import           User.Config             (redisEnv)
 import           User.DataSource
+import           User.RawAPI             as X (countBindByService,
+                                               countBindByUID,
+                                               countBindByUIDAndService,
+                                               countGroup, countUser,
+                                               createUser, getGroupListByUserId,
+                                               getUserIdByName, getUserIdList,
+                                               getUserIdListByGroup, mergeData,
+                                               removeGroupMeta, saveGroupMeta)
+import qualified User.RawAPI             as RawAPI
 import           User.Types
 import           Yuntan.Extra.Config     (fillValue, fillValue_)
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
+import           Yuntan.Utils.RedisCache (cached, remove)
 
-createUser         :: HasMySQL u => UserName -> Password -> GenHaxl u UserID
-getUser
-  :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u (Maybe User)
-getUserByName
-  :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u (Maybe User)
-removeUser         :: HasMySQL u => UserID -> GenHaxl u Int64
-updateUserName     :: HasMySQL u => UserID -> UserName -> GenHaxl u Int64
-updateUserPassword :: HasMySQL u => UserID -> Password -> GenHaxl u Int64
-updateUserExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
-updateUserSecureExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
-getUsers
-  :: (HasMySQL u, HasOtherEnv Cache u)
-  => From -> Size -> OrderBy -> GenHaxl u [User]
-countUser          :: HasMySQL u => GenHaxl u Int64
+genUserKey :: UserID -> ByteString
+genUserKey uid = fromString $ "user:" ++ show uid
 
-createUser name passwd        = uncachedRequest (CreateUser name passwd)
-getUser uid                   = fillUser =<< dataFetch (GetUser uid)
-getUserByName name            = fillUser =<< dataFetch (GetUserByName name)
-removeUser uid                = uncachedRequest (RemoveUser uid)
-updateUserName uid name       = uncachedRequest (UpdateUserName uid name)
-updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
-updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
-updateUserSecureExtra uid extra = uncachedRequest (UpdateUserSecureExtra uid extra)
-getUsers from size order      = do
-  users <- dataFetch (GetUsers from size order)
-  catMaybes <$> for users (\user -> fillUser (Just user))
+unCacheUser :: HasOtherEnv Cache u => UserID -> GenHaxl u a -> GenHaxl u a
+unCacheUser uid io = remove redisEnv (genUserKey uid) >> io
 
-countUser                     = dataFetch CountUser
+getUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u (Maybe User)
+getUser uid = cached redisEnv (genUserKey uid) $ fillUser =<< RawAPI.getUser uid
 
-createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
-getBind
-  :: (HasMySQL u, HasOtherEnv Cache u)
-  => BindID -> GenHaxl u (Maybe Bind)
+getUserByName :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u (Maybe User)
+getUserByName name = maybeM (pure Nothing) getUser $ getUserIdByName name
+
+removeUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
+removeUser uid = unCacheUser uid $ RawAPI.removeUser uid
+
+updateUserName :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> UserName -> GenHaxl u Int64
+updateUserName uid name = unCacheUser uid $ RawAPI.updateUserName uid name
+
+updateUserPassword :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Password -> GenHaxl u Int64
+updateUserPassword uid passwd = unCacheUser uid $ RawAPI.updateUserPassword uid passwd
+
+updateUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u Int64
+updateUserExtra uid extra = unCacheUser uid $ RawAPI.updateUserExtra uid extra
+
+updateUserSecureExtra :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u Int64
+updateUserSecureExtra uid extra = unCacheUser uid $ RawAPI.updateUserSecureExtra uid extra
+
+getUsers :: (HasMySQL u, HasOtherEnv Cache u) => From -> Size -> OrderBy -> GenHaxl u [User]
+getUsers from size order = do
+  uids <- getUserIdList from size order
+  catMaybes <$> for uids getUser
+
+createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
+createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
+
+getBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u (Maybe Bind)
+getBind bid = fillBindExtra =<< RawAPI.getBind bid
+
 getBindByName
-  :: (HasMySQL u, HasOtherEnv Cache u)
-  => ServiceName -> GenHaxl u (Maybe Bind)
-removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
-updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
-countBindByUID     :: HasMySQL u => UserID -> GenHaxl u Int64
+  :: (HasMySQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u (Maybe Bind)
+getBindByName n = fillBindExtra =<< RawAPI.getBindByName n
+
+unCacheBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u a -> GenHaxl u a
+unCacheBind bid io = do
+  b <- RawAPI.getBind bid
+  case b of
+    Nothing -> return ()
+    Just b0 -> remove redisEnv $ genUserKey $ getBindUid b0
+  io
+
+removeBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u Int64
+removeBind bid = unCacheBind bid $ RawAPI.removeBind bid
+
+updateBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> Extra -> GenHaxl u Int64
+updateBindExtra bid ex = unCacheBind bid $ RawAPI.updateBindExtra bid ex
+
 getBindListByUID
   :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-countBindByService :: HasMySQL u => Service -> GenHaxl u Int64
+getBindListByUID uid f s o = fillAllBindExtra_ =<< RawAPI.getBindListByUID uid f s o
+
 getBindListByService
   :: (HasMySQL u, HasOtherEnv Cache u)
   => Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-countBindByUIDAndService :: HasMySQL u => UserID -> Service -> GenHaxl u Int64
+getBindListByService srv f s o = fillAllBindExtra_ =<< RawAPI.getBindListByService srv f s o
+
 getBindListByUIDAndService
   :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u Int64
+getBindListByUIDAndService uid srv f s o = fillAllBindExtra_ =<< RawAPI.getBindListByUIDAndService uid srv f s o
 
-createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
-getBind bid            = fillBindExtra =<< dataFetch (GetBind bid)
-getBindByName n        = fillBindExtra =<< dataFetch (GetBindByName n)
-removeBind bid         = uncachedRequest (RemoveBind bid)
-updateBindExtra bid ex = uncachedRequest (UpdateBindExtra bid ex)
-countBindByUID uid     = dataFetch (CountBindByUID uid)
-getBindListByUID uid f s o = fillAllBindExtra_ =<< dataFetch (GetBindListByUID uid f s o)
-countBindByService srv     = dataFetch (CountBindByService srv)
-getBindListByService srv f s o = fillAllBindExtra_ =<< dataFetch (GetBindListByService srv f s o)
-countBindByUIDAndService uid srv = dataFetch (CountBindByUIDAndService uid srv)
-getBindListByUIDAndService uid srv f s o = fillAllBindExtra_ =<< dataFetch (GetBindListByUIDAndService uid srv f s o)
-removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
+removeBindByUID :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
+removeBindByUID uid = unCacheUser uid $ RawAPI.removeBindByUID uid
 
 fillBinds :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillBinds (Just u@User{getUserID = uid}) = do
@@ -127,24 +138,17 @@ fillBinds (Just u@User{getUserID = uid}) = do
 
 fillBinds Nothing = return Nothing
 
-mergeData :: HasMySQL u => GenHaxl u ()
-mergeData = uncachedRequest MergeData
 
-addGroup                :: HasMySQL u => GroupName -> UserID -> GenHaxl u ()
-removeGroup             :: HasMySQL u => String -> UserID -> GenHaxl u Int64
-getGroupListByUserId    :: HasMySQL u => UserID -> GenHaxl u [GroupName]
-getUserIdListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [UserID]
-removeGroupListByUserId :: HasMySQL u => UserID -> GenHaxl u Int64
-countGroup              :: HasMySQL u => GroupName -> GenHaxl u Int64
+addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u ()
+addGroup n uid = unCacheUser uid $ RawAPI.addGroup n uid
 
-addGroup n uid               = uncachedRequest (AddGroup n uid)
-removeGroup n uid            = uncachedRequest (RemoveGroup n uid)
-getGroupListByUserId uid     = dataFetch (GetGroupListByUserId uid)
-getUserIdListByGroup n f s o = dataFetch (GetUserIdListByGroup n f s o)
-removeGroupListByUserId uid  = uncachedRequest (RemoveGroupListByUserId uid)
-countGroup n                 = dataFetch (CountGroup n)
+removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => String -> UserID -> GenHaxl u Int64
+removeGroup n uid = unCacheUser uid $ RawAPI.removeGroup n uid
 
-fillGroups :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
+removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
+removeGroupListByUserId uid  = unCacheUser uid $ RawAPI.removeGroupListByUserId uid
+
+fillGroups :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillGroups (Just u@User{getUserID = uid}) = do
   groups <- getGroupListByUserId uid
   return (Just u { getUserGroups = groups })
@@ -184,16 +188,13 @@ fillAllBindExtra_ = mapM fillBindExtra_
 fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
 
-saveGroupMeta    :: HasMySQL u => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u Int64
-getGroupMeta     :: HasMySQL u => GroupName -> GenHaxl u (Maybe GroupMeta)
-removeGroupMeta  :: HasMySQL u => GroupName -> GenHaxl u Int64
-getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
 
-saveGroupMeta n t s = uncachedRequest (SaveGroupMeta n t s)
-getGroupMeta n      = fillGroupUserCount =<< dataFetch (GetGroupMeta n)
-removeGroupMeta n   = uncachedRequest (RemoveGroupMeta n)
+getGroupMeta :: HasMySQL u => GroupName -> GenHaxl u (Maybe GroupMeta)
+getGroupMeta n = fillGroupUserCount =<< RawAPI.getGroupMeta n
+
+getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
 getGroupMetaList    = do
-  gs <- dataFetch GetGroupMetaList
+  gs <- RawAPI.getGroupMetaList
   catMaybes <$> for gs (\g -> fillGroupUserCount (Just g))
 
 fillGroupUserCount :: HasMySQL u => Maybe GroupMeta -> GenHaxl u (Maybe GroupMeta)

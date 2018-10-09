@@ -19,14 +19,19 @@ module User.Types
   , Bind (..)
   , Extra
   , TablePrefix
+  , OUser
+  , toOUser
+  , toOUser'
   ) where
 
 import           Database.MySQL.Simple.QueryResults (QueryResults, convertError,
                                                      convertResults)
 import           Database.MySQL.Simple.Result       (convert)
 
-import           Data.Aeson                         (ToJSON (..), Value (..),
-                                                     decodeStrict, object, (.=))
+import           Data.Aeson                         (FromJSON (..), ToJSON (..),
+                                                     Value (..), decodeStrict,
+                                                     object, withObject, (.:),
+                                                     (.=))
 import           Data.Int                           (Int64)
 import           Data.Maybe                         (fromMaybe)
 import           Data.Text                          (Text)
@@ -109,12 +114,14 @@ instance QueryResults GroupMeta where
   convertResults fs vs  = convertError fs vs 2
 
 instance ToJSON User where
-  toJSON User{..} = object [ "id"         .= getUserID
-                           , "name"       .= getUserName
-                           , "extra"      .= unionValue getUserSecureExtra getUserExtra
-                           , "binds"      .= getUserBinds
-                           , "groups"     .= getUserGroups
-                           , "created_at" .= getUserCreatedAt
+  toJSON User{..} = object [ "id"           .= getUserID
+                           , "name"         .= getUserName
+                           , "password"     .= getUserPassword
+                           , "extra"        .= getUserExtra
+                           , "secure_extra" .= getUserSecureExtra
+                           , "binds"        .= getUserBinds
+                           , "groups"       .= getUserGroups
+                           , "created_at"   .= getUserCreatedAt
                            ]
 
 instance ToJSON Bind where
@@ -134,3 +141,58 @@ instance ToJSON GroupMeta where
     , "user_count" .= getGroupUserCount
     , "created_at" .= getGroupCreatedAt
     ]
+
+instance FromJSON User where
+  parseJSON = withObject "User" $ \o -> do
+    getUserID          <- o .: "id"
+    getUserName        <- o .: "name"
+    getUserPassword    <- o .: "password"
+    getUserExtra       <- o .: "extra"
+    getUserSecureExtra <- o .: "secure_extra"
+    getUserBinds       <- o .: "binds"
+    getUserGroups      <- o .: "groups"
+    getUserCreatedAt   <- o .: "created_at"
+    return User{..}
+
+instance FromJSON Bind where
+  parseJSON = withObject "Bind" $ \o -> do
+    getBindID <- o .: "id"
+    getBindUid <- o .: "user_id"
+    getBindName <- o .: "name"
+    getBindService <- o .: "service"
+    getBindExtra <- o .: "extra"
+    getBindCreatedAt <- o .: "created_at"
+    return Bind{..}
+
+data OUser = OUser
+  { getOUserID        :: UserID
+  , getOUserName      :: UserName
+  , getOUserExtra     :: Extra
+  , getOUserBinds     :: [Bind]
+  , getOUserGroups    :: [GroupName]
+  , getOUserCreatedAt :: CreatedAt
+  }
+  deriving (Show)
+
+instance ToJSON OUser where
+  toJSON OUser{..} = object
+    [ "id"           .= getOUserID
+    , "name"         .= getOUserName
+    , "extra"        .= getOUserExtra
+    , "binds"        .= getOUserBinds
+    , "groups"       .= getOUserGroups
+    , "created_at"   .= getOUserCreatedAt
+    ]
+
+toOUser :: User -> OUser
+toOUser User{..} = OUser
+  { getOUserID        = getUserID
+  , getOUserName      = getUserName
+  , getOUserExtra     = unionValue getUserSecureExtra getUserExtra
+  , getOUserBinds     = getUserBinds
+  , getOUserGroups    = getUserGroups
+  , getOUserCreatedAt = getUserCreatedAt
+  }
+
+toOUser' :: Maybe User -> Maybe OUser
+toOUser' = maybe Nothing (Just . toOUser)

@@ -53,7 +53,7 @@ import           Haxl.Core               (GenHaxl)
 import           User
 import           Web.Scotty.Trans        (body, json, param, rescue)
 import           Yuntan.Extra.Config     (getConfigJSON', setConfig')
-import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv, otherEnv)
+import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Types.Scotty     (ActionH)
@@ -79,7 +79,7 @@ createUserHandler = do
     (False, True) -> do
 
       uid <- lift $ createUser (pack name) (pack passwd)
-      json =<< lift (getUser uid)
+      json =<< lift (toOUser' <$> getUser uid)
 
 verifyPasswordHandler :: HasMySQL u => User -> ActionH u ()
 verifyPasswordHandler User{getUserPassword = pwd} = do
@@ -122,7 +122,7 @@ apiUser = do
                        else return Nothing
 
 getUserHandler :: User -> ActionH u ()
-getUserHandler = json
+getUserHandler = json . toOUser
 
 requireUser :: (HasMySQL u, HasOtherEnv Cache u) => (User -> ActionH u ()) -> ActionH u ()
 requireUser act = do
@@ -134,14 +134,14 @@ requireUser act = do
   where errorUserNotFound :: ActionH u ()
         errorUserNotFound = errNotFound "User is not found."
 
-removeUserHandler :: HasMySQL u => User -> ActionH u ()
+removeUserHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 removeUserHandler User{getUserID = uid} = do
   void . lift $ removeUser uid
   void . lift $ removeBindByUID uid
   void . lift $ removeGroupListByUserId uid
   resultOK
 
-updateUserNameHandler :: HasMySQL u => User -> ActionH u ()
+updateUserNameHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 updateUserNameHandler User{getUserID = uid} = do
   name <- param "username"
   case (isDigest name, isValidUserName name) of
@@ -151,13 +151,13 @@ updateUserNameHandler User{getUserID = uid} = do
       void . lift $ updateUserName uid (pack name)
       resultOK
 
-updateUserPasswordHandler :: HasMySQL u => User -> ActionH u ()
+updateUserPasswordHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 updateUserPasswordHandler User{getUserID = uid} = do
   passwd <- pack . hashPassword <$> param "passwd"
   void . lift $ updateUserPassword uid passwd
   resultOK
 
-updateUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+updateUserExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 updateUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
@@ -167,32 +167,32 @@ updateUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
 errorExtraRequired :: ActionH u ()
 errorExtraRequired = errBadRequest "extra field is required."
 
-removeUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+removeUserExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 removeUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
-clearUserExtraHandler :: HasMySQL u => User -> ActionH u ()
+clearUserExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 clearUserExtraHandler User{getUserID = uid} =
   void (lift $ updateUserExtra uid Null) >> resultOK
 
-updateUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+updateUserSecureExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 updateUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
     Just ev -> void (lift $ updateUserSecureExtra uid $ unionValue ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
-removeUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+removeUserSecureExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 removeUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
     Just ev -> void (lift $ updateUserSecureExtra uid $ differenceValue oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
-clearUserSecureExtraHandler :: HasMySQL u => User -> ActionH u ()
+clearUserSecureExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 clearUserSecureExtraHandler User{getUserID = uid} =
   void (lift $ updateUserSecureExtra uid Null) >> resultOK
 
@@ -222,7 +222,7 @@ userListHandler count userList = do
   okListResult "users" ListResult { getFrom   = from
                                   , getSize   = size
                                   , getTotal  = total
-                                  , getResult = users
+                                  , getResult = map toOUser users
                                   }
 
 apiBind :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u (Maybe Bind)
@@ -258,12 +258,12 @@ getBindHandler = do
   name <- param "name"
   maybeNotFound "Bind" =<< lift (getBindByName name)
 
-removeBindHandler :: HasMySQL u => Bind -> ActionH u ()
+removeBindHandler :: (HasMySQL u, HasOtherEnv Cache u) => Bind -> ActionH u ()
 removeBindHandler Bind{getBindID=bid}= do
   void . lift $ removeBind bid
   resultOK
 
-updateBindExtraHandler :: HasMySQL u => Bind -> ActionH u ()
+updateBindExtraHandler :: (HasMySQL u, HasOtherEnv Cache u) => Bind -> ActionH u ()
 updateBindExtraHandler Bind{getBindID=bid, getBindExtra=oev}= do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
@@ -295,13 +295,13 @@ bindListHandler count bindList = do
                                   , getResult = users
                                   }
 
-createGroupHandler :: HasMySQL u => User -> ActionH u ()
+createGroupHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 createGroupHandler User{getUserID = uid}= do
   group <- param "group"
   lift $ addGroup group uid
   resultOK
 
-removeGroupHandler :: HasMySQL u => User -> ActionH u ()
+removeGroupHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 removeGroupHandler User{getUserID = uid} = do
   group <- param "group"
   void . lift $ removeGroup group uid

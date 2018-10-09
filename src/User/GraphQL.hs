@@ -27,6 +27,7 @@ import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
+import           Yuntan.Utils.JSON       (unionValue)
 
 -- type Query {
 --  user(name: String!): User
@@ -96,7 +97,7 @@ user = objectA' "user" $ \case
 user_ :: (HasMySQL u, HasOtherEnv Cache u) => User -> [Resolver (GenHaxl u)]
 user_ User{..} = [ scalar "id"         getUserID
                  , scalar "name"       getUserName
-                 , value  "extra"      getUserExtra
+                 , value  "extra"      $ unionValue getUserSecureExtra getUserExtra
                  , binds "binds"       getUserID
                  , bindCount "bind_count" getUserID
                  , service' "service"  getUserID
