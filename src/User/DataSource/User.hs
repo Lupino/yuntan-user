@@ -47,7 +47,7 @@ getUser uid prefix conn = listToMaybe <$> query conn sql (Only uid)
 
 getUserIdByName :: UserName -> MySQL (Maybe UserID)
 getUserIdByName name prefix conn =
-  maybe Nothing (Just . fromOnly) . listToMaybe <$> query conn sql (Only name)
+  fmap fromOnly . listToMaybe <$> query conn sql (Only name)
   where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_users` WHERE `username`=?"]
 
 removeUser :: UserID -> MySQL Int64

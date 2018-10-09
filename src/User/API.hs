@@ -37,10 +37,8 @@ import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
 import           Data.String             (fromString)
 import           Data.Traversable        (for)
-import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
-import           User.Config             (Cache, lruEnv)
-import           User.Config             (redisEnv)
-import           User.DataSource
+import           Haxl.Core               (GenHaxl)
+import           User.Config             (Cache, lruEnv, redisEnv)
 import           User.RawAPI             as X (countBindByService,
                                                countBindByUID,
                                                countBindByUIDAndService,
@@ -195,7 +193,7 @@ getGroupMeta n = fillGroupUserCount =<< RawAPI.getGroupMeta n
 getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
 getGroupMetaList    = do
   gs <- RawAPI.getGroupMetaList
-  catMaybes <$> for gs (\g -> fillGroupUserCount (Just g))
+  catMaybes <$> for gs (fillGroupUserCount . Just)
 
 fillGroupUserCount :: HasMySQL u => Maybe GroupMeta -> GenHaxl u (Maybe GroupMeta)
 fillGroupUserCount (Just g@GroupMeta{getGroup = group}) = do

@@ -195,4 +195,4 @@ toOUser User{..} = OUser
   }
 
 toOUser' :: Maybe User -> Maybe OUser
-toOUser' = maybe Nothing (Just . toOUser)
+toOUser' = fmap toOUser
