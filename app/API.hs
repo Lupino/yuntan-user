@@ -18,6 +18,7 @@ import           Yuntan.Extra.Config                  (initConfigState)
 import           Yuntan.Types.HasMySQL                (HasMySQL, HasOtherEnv,
                                                        simpleEnv)
 import           Yuntan.Types.Scotty                  (ScottyH)
+import           Yuntan.Utils.RedisCache              (initRedisState)
 
 import           Haxl.Core                            (GenHaxl, StateStore,
                                                        initEnv, runHaxl,
@@ -78,12 +79,14 @@ program Options { getConfigFile  = confFile
       mysqlThreads = C.mysqlHaxlNumThreads mysqlConfig
       lruCacheSize = C.lruCacheSize conf
       redisConfig  = C.redisConfig conf
+      redisThreads = C.redisHaxlNumThreads redisConfig
 
   pool <- C.genMySQLPool mysqlConfig
   lruHandle <- newLruHandle lruCacheSize
   redis <- C.genRedisConnection redisConfig
 
   let state = stateSet (initConfigState mysqlThreads)
+            $ stateSet (initRedisState redisThreads)
             $ stateSet (initUserState mysqlThreads) stateEmpty
 
   let u = simpleEnv pool prefix $ mkCache (Just lruHandle) redis

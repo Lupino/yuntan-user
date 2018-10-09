@@ -8,6 +8,7 @@ module User.Config
   , Config (..)
   , genMySQLPool
   , genRedisConnection
+  , RedisConfig (..)
   , Cache
   , mkCache
   , lruEnv
