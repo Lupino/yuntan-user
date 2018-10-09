@@ -52,7 +52,7 @@ import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl)
 import           User
 import           Web.Scotty.Trans        (body, json, param, rescue)
-import           Yuntan.Extra.Config     (ConfigLru, getConfigJSON', setConfig')
+import           Yuntan.Extra.Config     (getConfigJSON', setConfig')
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv, otherEnv)
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
@@ -68,7 +68,7 @@ import           Data.Text               (pack, unpack)
 import           Data.GraphQL            (graphql)
 import           User.GraphQL
 
-createUserHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+createUserHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 createUserHandler = do
   name <- param "username"
   passwd <- hashPassword <$> param "passwd"
@@ -111,7 +111,7 @@ isDigest (x:xs) | x `elem` ['0'..'9'] = isDigest xs
 
 isDigest [] = True
 
-apiUser :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u (Maybe User)
+apiUser :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u (Maybe User)
 apiUser = do
   name <- param "uidOrName"
   user <- lift $ getUserByName (pack name)
@@ -124,7 +124,7 @@ apiUser = do
 getUserHandler :: User -> ActionH u ()
 getUserHandler = json
 
-requireUser :: (HasMySQL u, HasOtherEnv ConfigLru u) => (User -> ActionH u ()) -> ActionH u ()
+requireUser :: (HasMySQL u, HasOtherEnv Cache u) => (User -> ActionH u ()) -> ActionH u ()
 requireUser act = do
   user <- apiUser
   case user of
@@ -206,10 +206,10 @@ paramPage = do
   pure (from, size)
 
 
-getUsersHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getUsersHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getUsersHandler = userListHandler countUser (flip' getUsers (desc "id"))
 
-getUserListByGroupHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getUserListByGroupHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getUserListByGroupHandler = do
   group <- param "group"
   userListHandler (countGroup group) (flip' (getUserListByGroup group) (desc "user_id"))
@@ -225,7 +225,7 @@ userListHandler count userList = do
                                   , getResult = users
                                   }
 
-apiBind :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u (Maybe Bind)
+apiBind :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u (Maybe Bind)
 apiBind = do
   name <- param "bidOrName"
   user <- lift $ getBindByName (pack name)
@@ -235,7 +235,7 @@ apiBind = do
       if isDigest name then lift (getBind $ read name)
                        else return Nothing
 
-requireBind :: (HasMySQL u, HasOtherEnv ConfigLru u) => (Bind -> ActionH u ()) -> ActionH u ()
+requireBind :: (HasMySQL u, HasOtherEnv Cache u) => (Bind -> ActionH u ()) -> ActionH u ()
 requireBind act = do
   bind <- apiBind
   case bind of
@@ -245,7 +245,7 @@ requireBind act = do
   where errorBindNotFound :: ActionH u ()
         errorBindNotFound = errNotFound "Bind is not found."
 
-createBindHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> ActionH u ()
+createBindHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 createBindHandler User{getUserID = uid} = do
   service <- param "service"
   name <- param "name"
@@ -253,7 +253,7 @@ createBindHandler User{getUserID = uid} = do
   bid <- lift $ createBind uid service name $ fromMaybe Null extra
   json =<< lift (getBind bid)
 
-getBindHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getBindHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getBindHandler = do
   name <- param "name"
   maybeNotFound "Bind" =<< lift (getBindByName name)
@@ -270,16 +270,16 @@ updateBindExtraHandler Bind{getBindID=bid, getBindExtra=oev}= do
     Just ev -> void (lift $ updateBindExtra bid $ unionValue ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
-getBindListByServiceHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getBindListByServiceHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getBindListByServiceHandler = do
   srv <- param "service"
   bindListHandler (countBindByService srv) (flip' (getBindListByService srv) (desc "id"))
 
-getBindListByUserHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> ActionH u ()
+getBindListByUserHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 getBindListByUserHandler User{getUserID = uid}=
   bindListHandler (countBindByUID uid) (flip' (getBindListByUID uid) (desc "id"))
 
-getBindListByUserAndServiceHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> ActionH u ()
+getBindListByUserAndServiceHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 getBindListByUserAndServiceHandler User{getUserID = uid}= do
   srv <- param "service"
   bindListHandler (countBindByUIDAndService uid srv) (flip' (getBindListByUIDAndService uid srv) (desc "id"))
@@ -332,12 +332,12 @@ getGroupMetaListHandler = json =<< lift getGroupMetaList
 resultOK :: ActionH u ()
 resultOK = ok "result" ("OK" :: String)
 
-graphqlHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+graphqlHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 graphqlHandler = do
   query <- param "query"
   json =<< lift (graphql schema query)
 
-graphqlByBindHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+graphqlByBindHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 graphqlByBindHandler = do
   name <- param "name"
   b <- lift (getBindByName name)
@@ -347,26 +347,26 @@ graphqlByBindHandler = do
       query <- param "query"
       json =<< lift (graphql (schemaByBind b') query)
 
-graphqlByUserHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => User -> ActionH u ()
+graphqlByUserHandler :: (HasMySQL u, HasOtherEnv Cache u) => User -> ActionH u ()
 graphqlByUserHandler u = do
   query <- param "query"
   json =<< lift (graphql (schemaByUser u) query)
 
-graphqlByServiceHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+graphqlByServiceHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 graphqlByServiceHandler = do
   query <- param "query"
   srv <- param "service"
   json =<< lift (graphql (schemaByService srv) query)
 
-setConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+setConfigHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 setConfigHandler = do
   k <- param "key"
   v <- toStrict <$> body
-  lift $ setConfig' otherEnv k v
+  lift $ setConfig' lruEnv k v
   resultOK
 
-getConfigHandler :: (HasMySQL u, HasOtherEnv ConfigLru u) => ActionH u ()
+getConfigHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getConfigHandler = do
   k <- param "key"
-  v <- lift (getConfigJSON' otherEnv k)
+  v <- lift (getConfigJSON' lruEnv k)
   ok "result" (v :: Maybe Value)

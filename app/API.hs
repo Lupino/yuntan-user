@@ -14,10 +14,9 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Extra.Config                  (ConfigLru,
-                                                       initConfigState)
+import           Yuntan.Extra.Config                  (initConfigState)
 import           Yuntan.Types.HasMySQL                (HasMySQL, HasOtherEnv,
-                                                       SimpleEnv, simpleEnv)
+                                                       simpleEnv)
 import           Yuntan.Types.Scotty                  (ScottyH)
 
 import           Haxl.Core                            (GenHaxl, StateStore,
@@ -78,14 +77,16 @@ program Options { getConfigFile  = confFile
   let mysqlConfig  = C.mysqlConfig conf
       mysqlThreads = C.mysqlHaxlNumThreads mysqlConfig
       lruCacheSize = C.lruCacheSize conf
+      redisConfig  = C.redisConfig conf
 
   pool <- C.genMySQLPool mysqlConfig
-  lru <- newLruHandle lruCacheSize
+  lruHandle <- newLruHandle lruCacheSize
+  redis <- C.genRedisConnection redisConfig
 
   let state = stateSet (initConfigState mysqlThreads)
             $ stateSet (initUserState mysqlThreads) stateEmpty
 
-  let u = simpleEnv pool prefix (Just lru) :: SimpleEnv ConfigLru
+  let u = simpleEnv pool prefix $ mkCache (Just lruHandle) redis
 
   let opts = def { settings = setPort port
                             $ setHost (Host host) (settings def) }
@@ -93,12 +94,12 @@ program Options { getConfigFile  = confFile
   runIO u state mergeData
   scottyOptsT opts (runIO u state) application
   where
-        runIO :: (HasMySQL u, HasOtherEnv ConfigLru u) => u -> StateStore -> GenHaxl u b -> IO b
+        runIO :: (HasMySQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u b -> IO b
         runIO env s m = do
           env0 <- initEnv s env
           runHaxl env0 m
 
-application :: (HasMySQL u, HasOtherEnv ConfigLru u) => ScottyH u ()
+application :: (HasMySQL u, HasOtherEnv C.Cache u) => ScottyH u ()
 application = do
   middleware logStdout
 

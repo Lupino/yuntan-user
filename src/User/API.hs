@@ -42,31 +42,31 @@ module User.API
   , getGroupMetaList
   ) where
 
+import           Data.Aeson              (Value)
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
 import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
-import           Yuntan.Extra.Config     (ConfigLru, fillValue, fillValue_)
-import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv, otherEnv)
-
-import           Data.Aeson              (Value)
+import           User.Config             (Cache, lruEnv)
 import           User.DataSource
 import           User.Types
+import           Yuntan.Extra.Config     (fillValue, fillValue_)
+import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
 
 createUser         :: HasMySQL u => UserName -> Password -> GenHaxl u UserID
 getUser
-  :: (HasMySQL u, HasOtherEnv ConfigLru u) => UserID -> GenHaxl u (Maybe User)
+  :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u (Maybe User)
 getUserByName
-  :: (HasMySQL u, HasOtherEnv ConfigLru u) => UserName -> GenHaxl u (Maybe User)
+  :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u (Maybe User)
 removeUser         :: HasMySQL u => UserID -> GenHaxl u Int64
 updateUserName     :: HasMySQL u => UserID -> UserName -> GenHaxl u Int64
 updateUserPassword :: HasMySQL u => UserID -> Password -> GenHaxl u Int64
 updateUserExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
 updateUserSecureExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u Int64
 getUsers
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => From -> Size -> OrderBy -> GenHaxl u [User]
 countUser          :: HasMySQL u => GenHaxl u Int64
 
@@ -77,7 +77,7 @@ removeUser uid                = uncachedRequest (RemoveUser uid)
 updateUserName uid name       = uncachedRequest (UpdateUserName uid name)
 updateUserPassword uid passwd = uncachedRequest (UpdateUserPassword uid passwd)
 updateUserExtra uid extra     = uncachedRequest (UpdateUserExtra uid extra)
-updateUserSecureExtra uid extra     = uncachedRequest (UpdateUserSecureExtra uid extra)
+updateUserSecureExtra uid extra = uncachedRequest (UpdateUserSecureExtra uid extra)
 getUsers from size order      = do
   users <- dataFetch (GetUsers from size order)
   catMaybes <$> for users (\user -> fillUser (Just user))
@@ -86,24 +86,24 @@ countUser                     = dataFetch CountUser
 
 createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
 getBind
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => BindID -> GenHaxl u (Maybe Bind)
 getBindByName
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => ServiceName -> GenHaxl u (Maybe Bind)
 removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
 updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
 countBindByUID     :: HasMySQL u => UserID -> GenHaxl u Int64
 getBindListByUID
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> From -> Size -> OrderBy -> GenHaxl u [Bind]
 countBindByService :: HasMySQL u => Service -> GenHaxl u Int64
 getBindListByService
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
 countBindByUIDAndService :: HasMySQL u => UserID -> Service -> GenHaxl u Int64
 getBindListByUIDAndService
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
 removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u Int64
 
@@ -120,7 +120,7 @@ countBindByUIDAndService uid srv = dataFetch (CountBindByUIDAndService uid srv)
 getBindListByUIDAndService uid srv f s o = fillAllBindExtra_ =<< dataFetch (GetBindListByUIDAndService uid srv f s o)
 removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
 
-fillBinds :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
+fillBinds :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillBinds (Just u@User{getUserID = uid}) = do
   binds <- getBindListByUID uid 0 5 $ desc "id"
   return (Just u { getUserBinds = binds })
@@ -152,36 +152,36 @@ fillGroups (Just u@User{getUserID = uid}) = do
 fillGroups Nothing = return Nothing
 
 getUserListByGroup
-  :: (HasMySQL u, HasOtherEnv ConfigLru u)
+  :: (HasMySQL u, HasOtherEnv Cache u)
   => GroupName -> From -> Size -> OrderBy -> GenHaxl u [User]
 getUserListByGroup group f s o = do
   uids <- getUserIDListByGroup group f s o
   catMaybes <$> for uids getUser
 
-fillUserExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
-fillUserExtra = fillValue otherEnv "user-extra" getUserExtra update
+fillUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
+fillUserExtra = fillValue lruEnv "user-extra" getUserExtra update
   where update :: Value -> User -> User
         update v u = u {getUserExtra = v}
 
-fillUserSecureExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
-fillUserSecureExtra = fillValue otherEnv "user-secure-extra" getUserSecureExtra update
+fillUserSecureExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
+fillUserSecureExtra = fillValue lruEnv "user-secure-extra" getUserSecureExtra update
   where update :: Value -> User -> User
         update v u = u {getUserSecureExtra = v}
 
-fillBindExtra :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe Bind -> GenHaxl u (Maybe Bind)
-fillBindExtra = fillValue otherEnv "bind-extra" getBindExtra update
+fillBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe Bind -> GenHaxl u (Maybe Bind)
+fillBindExtra = fillValue lruEnv "bind-extra" getBindExtra update
   where update :: Value -> Bind -> Bind
         update v u = u {getBindExtra = v}
 
-fillBindExtra_ :: (HasMySQL u, HasOtherEnv ConfigLru u) => Bind -> GenHaxl u Bind
-fillBindExtra_ = fillValue_ otherEnv "bind-extra" getBindExtra update
+fillBindExtra_ :: (HasMySQL u, HasOtherEnv Cache u) => Bind -> GenHaxl u Bind
+fillBindExtra_ = fillValue_ lruEnv "bind-extra" getBindExtra update
   where update :: Value -> Bind -> Bind
         update v u = u {getBindExtra = v}
 
-fillAllBindExtra_ :: (HasMySQL u, HasOtherEnv ConfigLru u) => [Bind] -> GenHaxl u [Bind]
+fillAllBindExtra_ :: (HasMySQL u, HasOtherEnv Cache u) => [Bind] -> GenHaxl u [Bind]
 fillAllBindExtra_ = mapM fillBindExtra_
 
-fillUser :: (HasMySQL u, HasOtherEnv ConfigLru u) => Maybe User -> GenHaxl u (Maybe User)
+fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
 
 saveGroupMeta    :: HasMySQL u => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u Int64
