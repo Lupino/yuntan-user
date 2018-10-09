@@ -30,9 +30,9 @@ module User.API
 
   , addGroup
   , removeGroup
-  , removeGroupListByUserID
-  , getUserIDListByGroup
-  , getGroupListByUserID
+  , removeGroupListByUserId
+  , getUserIdListByGroup
+  , getGroupListByUserId
   , getUserListByGroup
   , countGroup
 
@@ -132,21 +132,21 @@ mergeData = uncachedRequest MergeData
 
 addGroup                :: HasMySQL u => GroupName -> UserID -> GenHaxl u ()
 removeGroup             :: HasMySQL u => String -> UserID -> GenHaxl u Int64
-getGroupListByUserID    :: HasMySQL u => UserID -> GenHaxl u [GroupName]
-getUserIDListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [UserID]
-removeGroupListByUserID :: HasMySQL u => UserID -> GenHaxl u Int64
+getGroupListByUserId    :: HasMySQL u => UserID -> GenHaxl u [GroupName]
+getUserIdListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [UserID]
+removeGroupListByUserId :: HasMySQL u => UserID -> GenHaxl u Int64
 countGroup              :: HasMySQL u => GroupName -> GenHaxl u Int64
 
 addGroup n uid               = uncachedRequest (AddGroup n uid)
 removeGroup n uid            = uncachedRequest (RemoveGroup n uid)
-getGroupListByUserID uid     = dataFetch (GetGroupListByUserID uid)
-getUserIDListByGroup n f s o = dataFetch (GetUserIDListByGroup n f s o)
-removeGroupListByUserID uid  = uncachedRequest (RemoveGroupListByUserID uid)
+getGroupListByUserId uid     = dataFetch (GetGroupListByUserId uid)
+getUserIdListByGroup n f s o = dataFetch (GetUserIdListByGroup n f s o)
+removeGroupListByUserId uid  = uncachedRequest (RemoveGroupListByUserId uid)
 countGroup n                 = dataFetch (CountGroup n)
 
 fillGroups :: HasMySQL u => Maybe User -> GenHaxl u (Maybe User)
 fillGroups (Just u@User{getUserID = uid}) = do
-  groups <- getGroupListByUserID uid
+  groups <- getGroupListByUserId uid
   return (Just u { getUserGroups = groups })
 
 fillGroups Nothing = return Nothing
@@ -155,7 +155,7 @@ getUserListByGroup
   :: (HasMySQL u, HasOtherEnv Cache u)
   => GroupName -> From -> Size -> OrderBy -> GenHaxl u [User]
 getUserListByGroup group f s o = do
-  uids <- getUserIDListByGroup group f s o
+  uids <- getUserIdListByGroup group f s o
   catMaybes <$> for uids getUser
 
 fillUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)

@@ -67,9 +67,9 @@ data UserReq a where
 
   AddGroup                :: GroupName -> UserID -> UserReq ()
   RemoveGroup             :: String -> UserID -> UserReq Int64
-  GetGroupListByUserID    :: UserID -> UserReq [GroupName]
-  GetUserIDListByGroup    :: GroupName -> From -> Size -> OrderBy -> UserReq [UserID]
-  RemoveGroupListByUserID :: UserID -> UserReq Int64
+  GetGroupListByUserId    :: UserID -> UserReq [GroupName]
+  GetUserIdListByGroup    :: GroupName -> From -> Size -> OrderBy -> UserReq [UserID]
+  RemoveGroupListByUserId :: UserID -> UserReq Int64
   CountGroup              :: GroupName -> UserReq Int64
 
   SaveGroupMeta    :: GroupName -> GroupTitle -> GroupSummary -> UserReq Int64
@@ -109,9 +109,9 @@ instance Hashable (UserReq a) where
 
   hashWithSalt s (AddGroup n uid)                           = hashWithSalt s (23::Int, n, uid)
   hashWithSalt s (RemoveGroup n uid)                        = hashWithSalt s (24::Int, n, uid)
-  hashWithSalt s (GetGroupListByUserID uid)                 = hashWithSalt s (25::Int, uid)
-  hashWithSalt s (GetUserIDListByGroup n f si o)            = hashWithSalt s (26::Int, n, f, si, o)
-  hashWithSalt s (RemoveGroupListByUserID uid)              = hashWithSalt s (27::Int, uid)
+  hashWithSalt s (GetGroupListByUserId uid)                 = hashWithSalt s (25::Int, uid)
+  hashWithSalt s (GetUserIdListByGroup n f si o)            = hashWithSalt s (26::Int, n, f, si, o)
+  hashWithSalt s (RemoveGroupListByUserId uid)              = hashWithSalt s (27::Int, uid)
   hashWithSalt s (CountGroup n)                             = hashWithSalt s (28::Int, n)
 
   hashWithSalt s (SaveGroupMeta n t c)                      = hashWithSalt s (29::Int, n, t, c)
@@ -187,9 +187,9 @@ fetchReq MergeData                        = mergeData
 
 fetchReq (AddGroup n uid)                 = addGroup n uid
 fetchReq (RemoveGroup n uid)              = removeGroup n uid
-fetchReq (GetGroupListByUserID uid)       = getGroupListByUserID uid
-fetchReq (GetUserIDListByGroup n f s o)   = getUserIDListByGroup n f s o
-fetchReq (RemoveGroupListByUserID uid)    = removeGroupListByUserID uid
+fetchReq (GetGroupListByUserId uid)       = getGroupListByUserId uid
+fetchReq (GetUserIdListByGroup n f s o)   = getUserIdListByGroup n f s o
+fetchReq (RemoveGroupListByUserId uid)    = removeGroupListByUserId uid
 fetchReq (CountGroup n)                   = countGroup n
 fetchReq (SaveGroupMeta n t s)            = saveGroupMeta n t s
 fetchReq (GetGroupMeta n)                 = getGroupMeta n
