@@ -22,7 +22,8 @@ import           Data.Text               (Text)
 import           Haxl.Core               (GenHaxl)
 import           User.API
 import           User.Types
-import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv)
+import           Yuntan.Extra.Config     (ConfigLru)
+import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)

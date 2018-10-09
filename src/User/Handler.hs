@@ -52,8 +52,8 @@ import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl)
 import           User
 import           Web.Scotty.Trans        (body, json, param, rescue)
-import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv,
-                                          getConfigJSON', otherEnv, setConfig')
+import           Yuntan.Extra.Config     (ConfigLru, getConfigJSON', setConfig')
+import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv, otherEnv)
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Types.Scotty     (ActionH)

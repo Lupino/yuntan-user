@@ -50,6 +50,7 @@ library
                      , yuntan-common-list-result
                      , yuntan-common-order
                      , yuntan-common-config-mysql
+                     , yuntan-common-extra-config
                      , yuntan-common-graphql
                      , graphql
                      , lrucaching
@@ -72,6 +73,7 @@ executable yuntan-user
                      , text
                      , yuntan-common-scotty-type
                      , yuntan-common-config-mysql
+                     , yuntan-common-extra-config
                      , lrucaching
   default-language:    Haskell2010
 

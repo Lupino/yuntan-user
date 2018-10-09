@@ -14,10 +14,10 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Types.HasMySQL                (ConfigLru, HasMySQL,
-                                                       HasOtherEnv, SimpleEnv,
-                                                       initConfigState,
-                                                       simpleEnv)
+import           Yuntan.Extra.Config                  (ConfigLru,
+                                                       initConfigState)
+import           Yuntan.Types.HasMySQL                (HasMySQL, HasOtherEnv,
+                                                       SimpleEnv, simpleEnv)
 import           Yuntan.Types.Scotty                  (ScottyH)
 
 import           Haxl.Core                            (GenHaxl, StateStore,

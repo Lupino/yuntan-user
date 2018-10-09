@@ -46,8 +46,8 @@ import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
 import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
-import           Yuntan.Types.HasMySQL   (ConfigLru, HasMySQL, HasOtherEnv,
-                                          fillValue, fillValue_, otherEnv)
+import           Yuntan.Extra.Config     (ConfigLru, fillValue, fillValue_)
+import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv, otherEnv)
 
 import           Data.Aeson              (Value)
 import           User.DataSource
