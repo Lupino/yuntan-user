@@ -4,16 +4,16 @@ module User.DataSource.Bind
   (
     createBind
   , getBind
-  , getBindByName
+  , getBindIdByName
   , removeBind
   , updateBindExtra
   , countBindByUID
-  , getBindListByUID
+  , getBindIdListByUID
   , removeBindByUID
   , countBindByUIDAndService
-  , getBindListByUIDAndService
+  , getBindIdListByUIDAndService
   , countBindByService
-  , getBindListByService
+  , getBindIdListByService
   ) where
 
 import           Control.Monad           (void)
@@ -46,9 +46,10 @@ getBind :: BindID -> MySQL (Maybe Bind)
 getBind uid prefix conn = listToMaybe <$> query conn sql (Only uid)
   where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds` WHERE `id`=?"]
 
-getBindByName :: ServiceName -> MySQL (Maybe Bind)
-getBindByName name prefix conn = listToMaybe <$> query conn sql (Only name)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds` WHERE `name`=?"]
+getBindIdByName :: ServiceName -> MySQL (Maybe BindID)
+getBindIdByName name prefix conn =
+  fmap fromOnly . listToMaybe <$> query conn sql (Only name)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_binds` WHERE `name`=?"]
 
 removeBind :: BindID -> MySQL Int64
 removeBind uid prefix conn = execute conn sql (Only uid)
@@ -62,9 +63,9 @@ countBindByUID :: UserID -> MySQL Int64
 countBindByUID uid prefix conn = maybe 0 fromOnly . listToMaybe <$> query conn sql (Only uid)
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_binds` WHERE `user_id`=?" ]
 
-getBindListByUID :: UserID -> From -> Size -> OrderBy -> MySQL [Bind]
-getBindListByUID uid from size o prefix conn = query conn sql (uid, from, size)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds`"
+getBindIdListByUID :: UserID -> From -> Size -> OrderBy -> MySQL [BindID]
+getBindIdListByUID uid from size o prefix conn = map fromOnly <$> query conn sql (uid, from, size)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_binds`"
                                   , " WHERE `user_id`=? "
                                   , show o, " LIMIT ?,?" ]
 
@@ -73,10 +74,10 @@ countBindByService service prefix conn =
   maybe 0 fromOnly . listToMaybe <$> query conn sql (Only service)
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_binds` WHERE `service`=?" ]
 
-getBindListByService :: Service -> From -> Size -> OrderBy -> MySQL [Bind]
-getBindListByService service from size o prefix conn =
-  query conn sql (service, from, size)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds`"
+getBindIdListByService :: Service -> From -> Size -> OrderBy -> MySQL [BindID]
+getBindIdListByService service from size o prefix conn =
+  map fromOnly <$> query conn sql (service, from, size)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_binds`"
                                   , " WHERE `service`=? "
                                   , show o, " LIMIT ?,?" ]
 
@@ -86,10 +87,10 @@ countBindByUIDAndService uid service prefix conn =
   where sql = fromString $ concat [ "SELECT count(*) FROM `", prefix, "_binds`"
                                   , " WHERE `user_id`=? AND `service`=?" ]
 
-getBindListByUIDAndService :: UserID -> Service -> From -> Size -> OrderBy -> MySQL [Bind]
-getBindListByUIDAndService uid service from size o prefix conn =
-  query conn sql (uid, service, from, size)
-  where sql = fromString $ concat [ "SELECT * FROM `", prefix, "_binds`"
+getBindIdListByUIDAndService :: UserID -> Service -> From -> Size -> OrderBy -> MySQL [BindID]
+getBindIdListByUIDAndService uid service from size o prefix conn =
+  map fromOnly <$> query conn sql (uid, service, from, size)
+  where sql = fromString $ concat [ "SELECT `id` FROM `", prefix, "_binds`"
                                   , " WHERE `user_id`=? AND `service`=? "
                                   , show o, " LIMIT ?,?" ]
 

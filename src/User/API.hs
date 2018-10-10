@@ -87,23 +87,28 @@ getUsers from size order = do
   uids <- getUserIdList from size order
   catMaybes <$> for uids getUser
 
-createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
-createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
-
-getBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u (Maybe Bind)
-getBind bid = fillBindExtra =<< RawAPI.getBind bid
-
-getBindByName
-  :: (HasMySQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u (Maybe Bind)
-getBindByName n = fillBindExtra =<< RawAPI.getBindByName n
+genBindKey :: BindID -> ByteString
+genBindKey bid = fromString $ "bind:" ++ show bid
 
 unCacheBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u a -> GenHaxl u a
 unCacheBind bid io = do
   b <- RawAPI.getBind bid
   case b of
-    Nothing -> return ()
-    Just b0 -> remove redisEnv $ genUserKey $ getBindUid b0
-  io
+    Nothing -> io
+    Just b0 -> do
+      remove redisEnv $ genUserKey $ getBindUid b0
+      remove redisEnv $ genBindKey $ getBindID b0
+      io
+
+createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
+createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
+
+getBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u (Maybe Bind)
+getBind bid = cached redisEnv (genBindKey bid) $ fillBindExtra =<< RawAPI.getBind bid
+
+getBindByName
+  :: (HasMySQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u (Maybe Bind)
+getBindByName n = maybeM (pure Nothing) getBind $ RawAPI.getBindIdByName n
 
 removeBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u Int64
 removeBind bid = unCacheBind bid $ RawAPI.removeBind bid
@@ -111,20 +116,24 @@ removeBind bid = unCacheBind bid $ RawAPI.removeBind bid
 updateBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> Extra -> GenHaxl u Int64
 updateBindExtra bid ex = unCacheBind bid $ RawAPI.updateBindExtra bid ex
 
+getBindList :: (HasMySQL u, HasOtherEnv Cache u) => [BindID] -> GenHaxl u [Bind]
+getBindList bids = catMaybes <$> for bids getBind
+
 getBindListByUID
   :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-getBindListByUID uid f s o = fillAllBindExtra_ =<< RawAPI.getBindListByUID uid f s o
+getBindListByUID uid f s o = getBindList =<< RawAPI.getBindIdListByUID uid f s o
 
 getBindListByService
   :: (HasMySQL u, HasOtherEnv Cache u)
   => Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-getBindListByService srv f s o = fillAllBindExtra_ =<< RawAPI.getBindListByService srv f s o
+getBindListByService srv f s o =
+  getBindList =<< RawAPI.getBindIdListByService srv f s o
 
 getBindListByUIDAndService
   :: (HasMySQL u, HasOtherEnv Cache u)
   => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
-getBindListByUIDAndService uid srv f s o = fillAllBindExtra_ =<< RawAPI.getBindListByUIDAndService uid srv f s o
+getBindListByUIDAndService uid srv f s o = getBindList =<< RawAPI.getBindIdListByUIDAndService uid srv f s o
 
 removeBindByUID :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
 removeBindByUID uid = unCacheUser uid $ RawAPI.removeBindByUID uid

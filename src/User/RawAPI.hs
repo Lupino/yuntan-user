@@ -15,15 +15,15 @@ module User.RawAPI
 
   , createBind
   , getBind
-  , getBindByName
+  , getBindIdByName
   , removeBind
   , updateBindExtra
   , countBindByUID
-  , getBindListByUID
+  , getBindIdListByUID
   , countBindByService
-  , getBindListByService
+  , getBindIdListByService
   , countBindByUIDAndService
-  , getBindListByUIDAndService
+  , getBindIdListByUIDAndService
   , removeBindByUID
 
   , mergeData
@@ -73,31 +73,31 @@ countUser                     = dataFetch CountUser
 
 createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
 getBind :: HasMySQL u => BindID -> GenHaxl u (Maybe Bind)
-getBindByName :: HasMySQL u => ServiceName -> GenHaxl u (Maybe Bind)
+getBindIdByName :: HasMySQL u => ServiceName -> GenHaxl u (Maybe BindID)
 removeBind         :: HasMySQL u => BindID -> GenHaxl u Int64
 updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u Int64
 countBindByUID     :: HasMySQL u => UserID -> GenHaxl u Int64
-getBindListByUID :: HasMySQL u => UserID -> From -> Size -> OrderBy -> GenHaxl u [Bind]
+getBindIdListByUID :: HasMySQL u => UserID -> From -> Size -> OrderBy -> GenHaxl u [BindID]
 countBindByService :: HasMySQL u => Service -> GenHaxl u Int64
-getBindListByService
-  :: HasMySQL u => Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
+getBindIdListByService
+  :: HasMySQL u => Service -> From -> Size -> OrderBy -> GenHaxl u [BindID]
 countBindByUIDAndService :: HasMySQL u => UserID -> Service -> GenHaxl u Int64
-getBindListByUIDAndService
+getBindIdListByUIDAndService
   :: HasMySQL u
-  => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u [Bind]
+  => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u [BindID]
 removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
 getBind bid            = dataFetch (GetBind bid)
-getBindByName n        = dataFetch (GetBindByName n)
+getBindIdByName n        = dataFetch (GetBindIdByName n)
 removeBind bid         = uncachedRequest (RemoveBind bid)
 updateBindExtra bid ex = uncachedRequest (UpdateBindExtra bid ex)
 countBindByUID uid     = dataFetch (CountBindByUID uid)
-getBindListByUID uid f s o = dataFetch (GetBindListByUID uid f s o)
+getBindIdListByUID uid f s o = dataFetch (GetBindIdListByUID uid f s o)
 countBindByService srv     = dataFetch (CountBindByService srv)
-getBindListByService srv f s o = dataFetch (GetBindListByService srv f s o)
+getBindIdListByService srv f s o = dataFetch (GetBindIdListByService srv f s o)
 countBindByUIDAndService uid srv = dataFetch (CountBindByUIDAndService uid srv)
-getBindListByUIDAndService uid srv f s o = dataFetch (GetBindListByUIDAndService uid srv f s o)
+getBindIdListByUIDAndService uid srv f s o = dataFetch (GetBindIdListByUIDAndService uid srv f s o)
 removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
 
 mergeData :: HasMySQL u => GenHaxl u ()
