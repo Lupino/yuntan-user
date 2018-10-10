@@ -307,7 +307,7 @@ removeGroupHandler User{getUserID = uid} = do
   void . lift $ removeGroup group uid
   resultOK
 
-saveGroupMetaHandler :: HasMySQL u => ActionH u ()
+saveGroupMetaHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 saveGroupMetaHandler = do
   group <- param "group"
   title <- param "title"
@@ -315,18 +315,18 @@ saveGroupMetaHandler = do
   void . lift $ saveGroupMeta group title summary
   resultOK
 
-getGroupMetaHandler :: HasMySQL u => ActionH u ()
+getGroupMetaHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getGroupMetaHandler = do
   group <- param "group"
   maybeNotFound "GroupMeta" =<< lift (getGroupMeta group)
 
-removeGroupMetaHandler :: HasMySQL u => ActionH u ()
+removeGroupMetaHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 removeGroupMetaHandler = do
   group <- param "group"
   void . lift $ removeGroupMeta group
   resultOK
 
-getGroupMetaListHandler :: HasMySQL u => ActionH u ()
+getGroupMetaListHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
 getGroupMetaListHandler = json =<< lift getGroupMetaList
 
 resultOK :: ActionH u ()

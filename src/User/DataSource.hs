@@ -66,7 +66,7 @@ data UserReq a where
   MergeData          :: UserReq ()
 
   AddGroup                :: GroupName -> UserID -> UserReq ()
-  RemoveGroup             :: String -> UserID -> UserReq Int64
+  RemoveGroup             :: GroupName -> UserID -> UserReq Int64
   GetGroupListByUserId    :: UserID -> UserReq [GroupName]
   GetUserIdListByGroup    :: GroupName -> From -> Size -> OrderBy -> UserReq [UserID]
   RemoveGroupListByUserId :: UserID -> UserReq Int64

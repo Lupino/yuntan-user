@@ -104,7 +104,7 @@ mergeData :: HasMySQL u => GenHaxl u ()
 mergeData = uncachedRequest MergeData
 
 addGroup                :: HasMySQL u => GroupName -> UserID -> GenHaxl u ()
-removeGroup             :: HasMySQL u => String -> UserID -> GenHaxl u Int64
+removeGroup             :: HasMySQL u => GroupName -> UserID -> GenHaxl u Int64
 getGroupListByUserId    :: HasMySQL u => UserID -> GenHaxl u [GroupName]
 getUserIdListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u [UserID]
 removeGroupListByUserId :: HasMySQL u => UserID -> GenHaxl u Int64

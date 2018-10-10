@@ -30,7 +30,7 @@ addGroup :: GroupName -> UserID -> MySQL ()
 addGroup group uid prefix conn = void $ execute conn sql (group, uid)
   where sql = fromString $ concat [ "REPLACE INTO `", prefix, "_groups` (`group`, `user_id`) values (?, ?)" ]
 
-removeGroup :: String -> UserID -> MySQL Int64
+removeGroup :: GroupName -> UserID -> MySQL Int64
 removeGroup group uid prefix conn = execute conn sql (group, uid)
   where sql = fromString $ concat [ "DELETE FROM `", prefix, "_groups` WHERE `group` = ? AND `user_id` = ?" ]
 

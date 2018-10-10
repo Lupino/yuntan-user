@@ -25,6 +25,8 @@ module User.API
   , removeGroupListByUserId
   , getUserListByGroup
 
+  , saveGroupMeta
+  , removeGroupMeta
   , getGroupMeta
   , getGroupMetaList
   , module X
@@ -36,6 +38,7 @@ import           Data.ByteString         (ByteString)
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
 import           Data.String             (fromString)
+import qualified Data.Text               as T (unpack)
 import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl)
 import           User.Config             (Cache, lruEnv, redisEnv)
@@ -45,15 +48,14 @@ import           User.RawAPI             as X (countBindByService,
                                                countGroup, countUser,
                                                createUser, getGroupListByUserId,
                                                getUserIdByName, getUserIdList,
-                                               getUserIdListByGroup, mergeData,
-                                               removeGroupMeta, saveGroupMeta)
+                                               getUserIdListByGroup, mergeData)
 import qualified User.RawAPI             as RawAPI
 import           User.Types
 import           Yuntan.Extra.Config     (fillValue)
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
-import           Yuntan.Utils.RedisCache (cached, remove)
+import           Yuntan.Utils.RedisCache (cached, cached', remove)
 
 genUserKey :: UserID -> ByteString
 genUserKey uid = fromString $ "user:" ++ show uid
@@ -145,15 +147,31 @@ fillBinds (Just u@User{getUserID = uid}) = do
 
 fillBinds Nothing = return Nothing
 
+genGroupKey :: GroupName -> ByteString
+genGroupKey name = fromString $ "group:" ++ T.unpack name
+
+unCacheGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u a -> GenHaxl u a
+unCacheGroup name io = do
+  remove redisEnv $ genGroupKey name
+  remove redisEnv $ fromString "groups"
+  io
+
+unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u a -> GenHaxl u a
+unCacheGroups uid io = do
+  names <- getGroupListByUserId uid
+  mapM_ (\name -> remove redisEnv $ genGroupKey name) names
+  remove redisEnv $ fromString "groups"
+  io
 
 addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u ()
 addGroup n uid = unCacheUser uid $ RawAPI.addGroup n uid
 
-removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => String -> UserID -> GenHaxl u Int64
-removeGroup n uid = unCacheUser uid $ RawAPI.removeGroup n uid
+removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u Int64
+removeGroup n uid = unCacheUser uid $ unCacheGroup n $ RawAPI.removeGroup n uid
 
 removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
-removeGroupListByUserId uid  = unCacheUser uid $ RawAPI.removeGroupListByUserId uid
+removeGroupListByUserId uid  =
+  unCacheUser uid $ unCacheGroups uid $ RawAPI.removeGroupListByUserId uid
 
 fillGroups :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillGroups (Just u@User{getUserID = uid}) = do
@@ -187,12 +205,17 @@ fillBindExtra = fillValue lruEnv "bind-extra" getBindExtra update
 fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
 
+saveGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u Int64
+saveGroupMeta n t s = unCacheGroup n $ RawAPI.saveGroupMeta n t s
 
-getGroupMeta :: HasMySQL u => GroupName -> GenHaxl u (Maybe GroupMeta)
-getGroupMeta n = fillGroupUserCount =<< RawAPI.getGroupMeta n
+removeGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u Int64
+removeGroupMeta n = unCacheGroup n $ RawAPI.removeGroupMeta n
 
-getGroupMetaList :: HasMySQL u => GenHaxl u [GroupMeta]
-getGroupMetaList    = do
+getGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u (Maybe GroupMeta)
+getGroupMeta n = cached redisEnv (genGroupKey n) $ fillGroupUserCount =<< RawAPI.getGroupMeta n
+
+getGroupMetaList :: (HasMySQL u, HasOtherEnv Cache u) => GenHaxl u [GroupMeta]
+getGroupMetaList = cached' redisEnv (fromString "groups") $ do
   gs <- RawAPI.getGroupMetaList
   catMaybes <$> for gs (fillGroupUserCount . Just)
 

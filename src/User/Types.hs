@@ -196,3 +196,12 @@ toOUser User{..} = OUser
 
 toOUser' :: Maybe User -> Maybe OUser
 toOUser' = fmap toOUser
+
+instance FromJSON GroupMeta where
+  parseJSON = withObject "GroupMeta" $ \o -> do
+    getGroup <- o .: "group"
+    getGroupTitle <- o .: "title"
+    getGroupSummary <- o .: "summary"
+    getGroupUserCount <- o .: "user_count"
+    getGroupCreatedAt <- o .: "created_at"
+    return GroupMeta{..}
