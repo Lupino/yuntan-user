@@ -49,7 +49,7 @@ import           User.RawAPI             as X (countBindByService,
                                                removeGroupMeta, saveGroupMeta)
 import qualified User.RawAPI             as RawAPI
 import           User.Types
-import           Yuntan.Extra.Config     (fillValue, fillValue_)
+import           Yuntan.Extra.Config     (fillValue)
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
@@ -183,14 +183,6 @@ fillBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe Bind -> GenHaxl u (M
 fillBindExtra = fillValue lruEnv "bind-extra" getBindExtra update
   where update :: Value -> Bind -> Bind
         update v u = u {getBindExtra = v}
-
-fillBindExtra_ :: (HasMySQL u, HasOtherEnv Cache u) => Bind -> GenHaxl u Bind
-fillBindExtra_ = fillValue_ lruEnv "bind-extra" getBindExtra update
-  where update :: Value -> Bind -> Bind
-        update v u = u {getBindExtra = v}
-
-fillAllBindExtra_ :: (HasMySQL u, HasOtherEnv Cache u) => [Bind] -> GenHaxl u [Bind]
-fillAllBindExtra_ = mapM fillBindExtra_
 
 fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
