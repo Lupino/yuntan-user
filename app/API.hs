@@ -9,6 +9,7 @@ module Main
 import           Data.Default.Class                   (def)
 import           Data.LruCache.IO                     (newLruHandle)
 import           Data.Streaming.Network.Internal      (HostPreference (Host))
+import           Data.String                          (fromString)
 import           Network.Wai.Handler.Warp             (setHost, setPort)
 import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
@@ -86,7 +87,7 @@ program Options { getConfigFile  = confFile
   redis <- C.genRedisConnection redisConfig
 
   let state = stateSet (initConfigState mysqlThreads)
-            $ stateSet (initRedisState redisThreads)
+            $ stateSet (initRedisState redisThreads $ fromString prefix)
             $ stateSet (initUserState mysqlThreads) stateEmpty
 
   let u = simpleEnv pool prefix $ mkCache (Just lruHandle) redis
