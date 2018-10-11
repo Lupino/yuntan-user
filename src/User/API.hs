@@ -26,6 +26,7 @@ module User.API
   , removeGroup
   , removeGroupListByUserId
   , getUserListByGroup
+  , countGroup
 
   , saveGroupMeta
   , removeGroupMeta
@@ -47,7 +48,7 @@ import           User.Config             (Cache, lruEnv, redisEnv)
 import           User.RawAPI             as X (countBindByService,
                                                countBindByUID,
                                                countBindByUIDAndService,
-                                               countGroup, getGroupListByUserId,
+                                               getGroupListByUserId,
                                                getUserIdByName, getUserIdList,
                                                getUserIdListByGroup, mergeData)
 import qualified User.RawAPI             as RawAPI
@@ -173,6 +174,7 @@ unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u a -> G
 unCacheGroups uid io = do
   names <- getGroupListByUserId uid
   mapM_ (\name -> remove redisEnv $ genGroupKey name) names
+  mapM_ (\name -> remove redisEnv $ genCountKey ("group:" ++ T.unpack name)) names
   remove redisEnv $ fromString "groups"
   io
 
@@ -180,7 +182,11 @@ addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl 
 addGroup n uid = unCacheUser uid $ RawAPI.addGroup n uid
 
 removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u Int64
-removeGroup n uid = unCacheUser uid $ unCacheGroup n $ RawAPI.removeGroup n uid
+removeGroup n uid =
+  unCacheUser uid
+    $ unCacheGroup n
+    $ unCacheCount ("group" ++ T.unpack n)
+    $ RawAPI.removeGroup n uid
 
 removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
 removeGroupListByUserId uid  =
@@ -199,6 +205,10 @@ getUserListByGroup
 getUserListByGroup group f s o = do
   uids <- getUserIdListByGroup group f s o
   catMaybes <$> for uids getUser
+
+countGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u Int64
+countGroup name =
+  cached' redisEnv (genCountKey ("group:" ++ T.unpack name)) $ RawAPI.countGroup name
 
 fillUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUserExtra = fillValue lruEnv "user-extra" getUserExtra update
@@ -234,7 +244,7 @@ getGroupMetaList = cached' redisEnv (fromString "groups") $ do
 
 fillGroupUserCount :: HasMySQL u => Maybe GroupMeta -> GenHaxl u (Maybe GroupMeta)
 fillGroupUserCount (Just g@GroupMeta{getGroup = group}) = do
-  uc <- countGroup group
+  uc <- RawAPI.countGroup group
   return (Just g {getGroupUserCount = uc})
 
 fillGroupUserCount Nothing = return Nothing

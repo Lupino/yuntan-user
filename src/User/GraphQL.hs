@@ -206,5 +206,5 @@ groupUsers n g = arrayA' n $ \argv ->
   let (f, s) = paramPage argv
       in map user_ <$> getUserListByGroup g f s (desc "user_id")
 
-groupUserCount :: HasMySQL u => Name -> Text -> Resolver (GenHaxl u)
+groupUserCount :: (HasMySQL u, HasOtherEnv Cache u) => Name -> Text -> Resolver (GenHaxl u)
 groupUserCount n g = scalarA n $ \_ -> countGroup g
