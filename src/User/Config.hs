@@ -23,8 +23,7 @@ import           Yuntan.Config.RedisConfig (RedisConfig (..),
                                             defaultRedisConfig,
                                             genRedisConnection)
 import           Yuntan.Extra.Config       (ConfigLru)
-import           Yuntan.Types.HasMySQL     (HasMySQL, HasOtherEnv, SimpleEnv,
-                                            otherEnv)
+import           Yuntan.Types.HasMySQL     (HasOtherEnv, otherEnv)
 
 data Config = Config
   { mysqlConfig  :: MySQLConfig

@@ -184,7 +184,7 @@ users = arrayA' "users" $ \argv ->
   let (f, s) = paramPage argv
       in map user_ <$> getUsers f s (desc "id")
 
-userCount :: HasMySQL u => Resolver (GenHaxl u)
+userCount :: (HasMySQL u, HasOtherEnv Cache u) => Resolver (GenHaxl u)
 userCount = scalarA "user_count" $ \case
   [] -> countUser
   _  -> empty

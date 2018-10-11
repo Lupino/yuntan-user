@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module User.API
-  ( getUser
+  ( createUser
+  , getUser
   , getUserByName
   , removeUser
   , updateUserName
@@ -9,6 +10,7 @@ module User.API
   , updateUserExtra
   , updateUserSecureExtra
   , getUsers
+  , countUser
 
   , createBind
   , getBind
@@ -45,8 +47,7 @@ import           User.Config             (Cache, lruEnv, redisEnv)
 import           User.RawAPI             as X (countBindByService,
                                                countBindByUID,
                                                countBindByUIDAndService,
-                                               countGroup, countUser,
-                                               createUser, getGroupListByUserId,
+                                               countGroup, getGroupListByUserId,
                                                getUserIdByName, getUserIdList,
                                                getUserIdListByGroup, mergeData)
 import qualified User.RawAPI             as RawAPI
@@ -63,6 +64,15 @@ genUserKey uid = fromString $ "user:" ++ show uid
 unCacheUser :: HasOtherEnv Cache u => UserID -> GenHaxl u a -> GenHaxl u a
 unCacheUser uid io = remove redisEnv (genUserKey uid) >> io
 
+genCountKey :: String -> ByteString
+genCountKey k = fromString $ "count:" ++ k
+
+unCacheCount :: HasOtherEnv Cache u => String -> GenHaxl u a -> GenHaxl u a
+unCacheCount k io = remove redisEnv (genCountKey k) >> io
+
+createUser :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> Password -> GenHaxl u UserID
+createUser n p = unCacheCount "user" $ RawAPI.createUser n p
+
 getUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u (Maybe User)
 getUser uid = cached redisEnv (genUserKey uid) $ fillUser =<< RawAPI.getUser uid
 
@@ -70,7 +80,7 @@ getUserByName :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u (May
 getUserByName name = maybeM (pure Nothing) getUser $ getUserIdByName name
 
 removeUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
-removeUser uid = unCacheUser uid $ RawAPI.removeUser uid
+removeUser uid = unCacheUser uid $ unCacheCount "user" $ RawAPI.removeUser uid
 
 updateUserName :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> UserName -> GenHaxl u Int64
 updateUserName uid name = unCacheUser uid $ RawAPI.updateUserName uid name
@@ -88,6 +98,9 @@ getUsers :: (HasMySQL u, HasOtherEnv Cache u) => From -> Size -> OrderBy -> GenH
 getUsers from size order = do
   uids <- getUserIdList from size order
   catMaybes <$> for uids getUser
+
+countUser :: (HasMySQL u, HasOtherEnv Cache u) => GenHaxl u Int64
+countUser = cached' redisEnv (genCountKey "user") $ RawAPI.countUser
 
 genBindKey :: BindID -> ByteString
 genBindKey bid = fromString $ "bind:" ++ show bid
