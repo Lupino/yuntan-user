@@ -59,17 +59,23 @@ import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
 import           Yuntan.Utils.RedisCache (cached, cached', remove)
 
+($>) :: GenHaxl u a -> GenHaxl u () -> GenHaxl u a
+io $> a = do
+  r <- io
+  a
+  return r
+
 genUserKey :: UserID -> ByteString
 genUserKey uid = fromString $ "user:" ++ show uid
 
 unCacheUser :: HasOtherEnv Cache u => UserID -> GenHaxl u a -> GenHaxl u a
-unCacheUser uid io = remove redisEnv (genUserKey uid) >> io
+unCacheUser uid io = io $> remove redisEnv (genUserKey uid)
 
 genCountKey :: String -> ByteString
 genCountKey k = fromString $ "count:" ++ k
 
 unCacheCount :: HasOtherEnv Cache u => String -> GenHaxl u a -> GenHaxl u a
-unCacheCount k io = remove redisEnv (genCountKey k) >> io
+unCacheCount k io = io $> remove redisEnv (genCountKey k)
 
 createUser :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> Password -> GenHaxl u UserID
 createUser n p = unCacheCount "user" $ RawAPI.createUser n p
@@ -109,12 +115,13 @@ genBindKey bid = fromString $ "bind:" ++ show bid
 unCacheBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u a -> GenHaxl u a
 unCacheBind bid io = do
   b <- RawAPI.getBind bid
+  r <- io
   case b of
-    Nothing -> io
+    Nothing -> return r
     Just b0 -> do
       remove redisEnv $ genUserKey $ getBindUid b0
       remove redisEnv $ genBindKey $ getBindID b0
-      io
+      return r
 
 createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u BindID
 createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
@@ -166,17 +173,19 @@ genGroupKey name = fromString $ "group:" ++ T.unpack name
 
 unCacheGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u a -> GenHaxl u a
 unCacheGroup name io = do
+  r <- io
   remove redisEnv $ genGroupKey name
   remove redisEnv $ fromString "groups"
-  io
+  return r
 
 unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u a -> GenHaxl u a
 unCacheGroups uid io = do
+  r <- io
   names <- getGroupListByUserId uid
   mapM_ (\name -> remove redisEnv $ genGroupKey name) names
   mapM_ (\name -> remove redisEnv $ genCountKey ("group:" ++ T.unpack name)) names
   remove redisEnv $ fromString "groups"
-  io
+  return r
 
 addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u ()
 addGroup n uid = unCacheUser uid $ RawAPI.addGroup n uid
