@@ -195,7 +195,7 @@ removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHa
 removeGroup n uid =
   unCacheUser uid
     $ unCacheGroup n
-    $ unCacheCount ("group" ++ T.unpack n)
+    $ unCacheCount ("group:" ++ T.unpack n)
     $ RawAPI.removeGroup n uid
 
 removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
