@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns     #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module User.API
@@ -61,8 +62,8 @@ import           Yuntan.Utils.RedisCache (cached, cached', remove)
 
 ($>) :: GenHaxl u a -> GenHaxl u () -> GenHaxl u a
 io $> a = do
-  r <- io
-  a
+  !r <- io
+  !_ <- a
   return r
 
 genUserKey :: UserID -> ByteString
