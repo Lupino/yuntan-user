@@ -169,33 +169,36 @@ fillBinds (Just u@User{getUserID = uid}) = do
 
 fillBinds Nothing = return Nothing
 
+groupKey :: GroupName -> String
+groupKey name = "group:" ++ T.unpack name
+
 genGroupKey :: GroupName -> ByteString
-genGroupKey name = fromString $ "group:" ++ T.unpack name
+genGroupKey name = fromString $ groupKey name
 
 unCacheGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u a -> GenHaxl u a
 unCacheGroup name io = do
-  r <- io
+  !r <- io
+  unCacheCount (groupKey name)
   remove redisEnv $ genGroupKey name
   remove redisEnv $ fromString "groups"
   return r
 
 unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u a -> GenHaxl u a
 unCacheGroups uid io = do
-  r <- io
+  !r <- io
   names <- getGroupListByUserId uid
   mapM_ (\name -> remove redisEnv $ genGroupKey name) names
-  mapM_ (\name -> remove redisEnv $ genCountKey ("group:" ++ T.unpack name)) names
+  mapM_ (\name -> remove redisEnv $ genCountKey (groupKey name)) names
   remove redisEnv $ fromString "groups"
   return r
 
 addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u ()
-addGroup n uid = unCacheUser uid $ RawAPI.addGroup n uid
+addGroup n uid = unCacheUser uid $ unCacheGroup n $ RawAPI.addGroup n uid
 
 removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u Int64
 removeGroup n uid =
   unCacheUser uid
     $ unCacheGroup n
-    $ unCacheCount ("group:" ++ T.unpack n)
     $ RawAPI.removeGroup n uid
 
 removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u Int64
@@ -218,7 +221,7 @@ getUserListByGroup group f s o = do
 
 countGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u Int64
 countGroup name =
-  cached' redisEnv (genCountKey ("group:" ++ T.unpack name)) $ RawAPI.countGroup name
+  cached' redisEnv (genCountKey (groupKey name)) $ RawAPI.countGroup name
 
 fillUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
 fillUserExtra = fillValue lruEnv "user-extra" getUserExtra update
