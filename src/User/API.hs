@@ -178,7 +178,7 @@ genGroupKey name = fromString $ groupKey name
 unCacheGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u a -> GenHaxl u a
 unCacheGroup name io = do
   !r <- io
-  unCacheCount (groupKey name)
+  remove redisEnv $ genCountKey (groupKey name)
   remove redisEnv $ genGroupKey name
   remove redisEnv $ fromString "groups"
   return r
