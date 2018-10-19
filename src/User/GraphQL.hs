@@ -26,7 +26,8 @@ import           User.Types
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (desc)
-import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, value)
+import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, pickValue,
+                                          value)
 import           Yuntan.Utils.JSON       (unionValue)
 
 -- type Query {
@@ -56,6 +57,7 @@ import           Yuntan.Utils.JSON       (unionValue)
 --  id: Int
 --  name: String
 --  extra: Extra
+--  pick_extra(keys: [String]): Extra
 --  binds(from: Int, size: Int): [Bind]
 --  bind_count: Int
 --  groups: [String]
@@ -69,6 +71,7 @@ import           Yuntan.Utils.JSON       (unionValue)
 --  name: String
 --  service: String
 --  extra: Extra
+--  pick_extra(keys: [String]): Extra
 --  created_at: Int
 -- }
 -- type Extra {
@@ -95,25 +98,29 @@ user = objectA' "user" $ \case
   _ -> empty
 
 user_ :: (HasMySQL u, HasOtherEnv Cache u) => User -> [Resolver (GenHaxl u)]
-user_ User{..} = [ scalar "id"         getUserID
-                 , scalar "name"       getUserName
-                 , value  "extra"      $ unionValue getUserSecureExtra getUserExtra
-                 , binds "binds"       getUserID
-                 , bindCount "bind_count" getUserID
-                 , service' "service"  getUserID
-                 , scalar "groups"     getUserGroups
-                 , scalar "created_at" getUserCreatedAt
-                 ]
+user_ User{..} =
+  [ scalar    "id"         getUserID
+  , scalar    "name"       getUserName
+  , value     "extra"      $ unionValue getUserSecureExtra getUserExtra
+  , pickValue "pick_extra" $ unionValue getUserSecureExtra getUserExtra
+  , binds     "binds"      getUserID
+  , bindCount "bind_count" getUserID
+  , service'  "service"    getUserID
+  , scalar    "groups"     getUserGroups
+  , scalar    "created_at" getUserCreatedAt
+  ]
 
 bind_ :: (HasMySQL u, HasOtherEnv Cache u) => Bind -> [Resolver (GenHaxl u)]
-bind_ Bind{..} = [ scalar "id" getBindID
-                 , scalar "user_id" getBindUid
-                 , user__ "user" getBindUid
-                 , scalar "name" getBindName
-                 , scalar "service" getBindService
-                 , scalar "extra" getBindExtra
-                 , scalar "created_at" getBindCreatedAt
-                 ]
+bind_ Bind{..} =
+  [ scalar    "id"         getBindID
+  , scalar    "user_id"    getBindUid
+  , user__    "user"       getBindUid
+  , scalar    "name"       getBindName
+  , scalar    "service"    getBindService
+  , value     "extra"      getBindExtra
+  , pickValue "pick_extra" getBindExtra
+  , scalar    "created_at" getBindCreatedAt
+  ]
 
 user__ :: (HasMySQL u, HasOtherEnv Cache u) => Name -> UserID -> Resolver (GenHaxl u)
 user__ n uid = object' n $ maybe [] user_ <$> getUser uid
