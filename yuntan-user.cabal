@@ -52,11 +52,9 @@ library
                      , yuntan-common-order
                      , yuntan-common-config-mysql
                      , yuntan-common-config-redis
-                     , yuntan-common-extra-config
                      , yuntan-common-redis-caching
                      , yuntan-common-graphql
                      , graphql
-                     , lrucaching
                      , hedis
                      , extra
   default-language:    Haskell2010

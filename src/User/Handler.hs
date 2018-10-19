@@ -39,20 +39,15 @@ module User.Handler
   , graphqlByBindHandler
   , graphqlByUserHandler
   , graphqlByServiceHandler
-
-  , setConfigHandler
-  , getConfigHandler
   ) where
 
 import           Control.Monad           (void)
 import           Control.Monad.Reader    (lift)
 
-import           Data.ByteString.Lazy    (toStrict)
 import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl)
 import           User
-import           Web.Scotty.Trans        (body, json, param, rescue)
-import           Yuntan.Extra.Config     (getConfigJSON', setConfig')
+import           Web.Scotty.Trans        (json, param, rescue)
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
@@ -357,16 +352,3 @@ graphqlByServiceHandler = do
   query <- param "query"
   srv <- param "service"
   json =<< lift (graphql (schemaByService srv) query)
-
-setConfigHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
-setConfigHandler = do
-  k <- param "key"
-  v <- toStrict <$> body
-  lift $ setConfig' lruEnv k v
-  resultOK
-
-getConfigHandler :: (HasMySQL u, HasOtherEnv Cache u) => ActionH u ()
-getConfigHandler = do
-  k <- param "key"
-  v <- lift (getConfigJSON' lruEnv k)
-  ok "result" (v :: Maybe Value)

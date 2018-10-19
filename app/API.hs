@@ -7,7 +7,6 @@ module Main
   ) where
 
 import           Data.Default.Class                   (def)
-import           Data.LruCache.IO                     (newLruHandle)
 import           Data.Streaming.Network.Internal      (HostPreference (Host))
 import           Data.String                          (fromString)
 import           Network.Wai.Handler.Warp             (setHost, setPort)
@@ -78,19 +77,17 @@ program Options { getConfigFile  = confFile
 
   let mysqlConfig  = C.mysqlConfig conf
       mysqlThreads = C.mysqlHaxlNumThreads mysqlConfig
-      lruCacheSize = C.lruCacheSize conf
       redisConfig  = C.redisConfig conf
       redisThreads = C.redisHaxlNumThreads redisConfig
 
   pool <- C.genMySQLPool mysqlConfig
-  lruHandle <- newLruHandle lruCacheSize
   redis <- C.genRedisConnection redisConfig
 
   let state = stateSet (initConfigState mysqlThreads)
             $ stateSet (initRedisState redisThreads $ fromString prefix)
             $ stateSet (initUserState mysqlThreads) stateEmpty
 
-  let u = simpleEnv pool prefix $ mkCache (Just lruHandle) redis
+  let u = simpleEnv pool prefix $ mkCache redis
 
   let opts = def { settings = setPort port
                             $ setHost (Host host) (settings def) }
@@ -145,6 +142,3 @@ application = do
   post   "/api/binds/:name/graphql/" graphqlByBindHandler
   post   "/api/users/:uidOrName/graphql/" $ requireUser graphqlByUserHandler
   post   "/api/service/:service/graphql/" graphqlByServiceHandler
-
-  get "/api/config/:key/" getConfigHandler
-  post "/api/config/:key/" setConfigHandler

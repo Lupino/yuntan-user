@@ -37,7 +37,6 @@ module User.API
   ) where
 
 import           Control.Monad.Extra     (maybeM)
-import           Data.Aeson              (Value)
 import           Data.ByteString         (ByteString)
 import           Data.Int                (Int64)
 import           Data.Maybe              (catMaybes)
@@ -45,7 +44,7 @@ import           Data.String             (fromString)
 import qualified Data.Text               as T (unpack)
 import           Data.Traversable        (for)
 import           Haxl.Core               (GenHaxl)
-import           User.Config             (Cache, lruEnv, redisEnv)
+import           User.Config             (Cache, redisEnv)
 import           User.RawAPI             as X (countBindByService,
                                                countBindByUID,
                                                countBindByUIDAndService,
@@ -54,7 +53,6 @@ import           User.RawAPI             as X (countBindByService,
                                                getUserIdListByGroup, mergeData)
 import qualified User.RawAPI             as RawAPI
 import           User.Types
-import           Yuntan.Extra.Config     (fillValue)
 import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
@@ -108,7 +106,7 @@ getUsers from size order = do
   catMaybes <$> for uids getUser
 
 countUser :: (HasMySQL u, HasOtherEnv Cache u) => GenHaxl u Int64
-countUser = cached' redisEnv (genCountKey "user") $ RawAPI.countUser
+countUser = cached' redisEnv (genCountKey "user") RawAPI.countUser
 
 genBindKey :: BindID -> ByteString
 genBindKey bid = fromString $ "bind:" ++ show bid
@@ -128,7 +126,7 @@ createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceN
 createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
 
 getBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u (Maybe Bind)
-getBind bid = cached redisEnv (genBindKey bid) $ fillBindExtra =<< RawAPI.getBind bid
+getBind bid = cached redisEnv (genBindKey bid) $ RawAPI.getBind bid
 
 getBindByName
   :: (HasMySQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u (Maybe Bind)
@@ -187,8 +185,8 @@ unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u a -> G
 unCacheGroups uid io = do
   !r <- io
   names <- getGroupListByUserId uid
-  mapM_ (\name -> remove redisEnv $ genGroupKey name) names
-  mapM_ (\name -> remove redisEnv $ genCountKey (groupKey name)) names
+  mapM_ (remove redisEnv . genGroupKey) names
+  mapM_ (remove redisEnv . genCountKey . groupKey) names
   remove redisEnv $ fromString "groups"
   return r
 
@@ -223,23 +221,8 @@ countGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u Int64
 countGroup name =
   cached' redisEnv (genCountKey (groupKey name)) $ RawAPI.countGroup name
 
-fillUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
-fillUserExtra = fillValue lruEnv "user-extra" getUserExtra update
-  where update :: Value -> User -> User
-        update v u = u {getUserExtra = v}
-
-fillUserSecureExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
-fillUserSecureExtra = fillValue lruEnv "user-secure-extra" getUserSecureExtra update
-  where update :: Value -> User -> User
-        update v u = u {getUserSecureExtra = v}
-
-fillBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => Maybe Bind -> GenHaxl u (Maybe Bind)
-fillBindExtra = fillValue lruEnv "bind-extra" getBindExtra update
-  where update :: Value -> Bind -> Bind
-        update v u = u {getBindExtra = v}
-
 fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u (Maybe User)
-fillUser u = fillUserSecureExtra =<< fillUserExtra =<< fillGroups =<< fillBinds u
+fillUser u = fillGroups =<< fillBinds u
 
 saveGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u Int64
 saveGroupMeta n t s = unCacheGroup n $ RawAPI.saveGroupMeta n t s
