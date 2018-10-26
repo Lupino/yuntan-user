@@ -14,7 +14,6 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Extra.Config                  (initConfigState)
 import           Yuntan.Types.HasMySQL                (HasMySQL, HasOtherEnv,
                                                        simpleEnv)
 import           Yuntan.Types.Scotty                  (ScottyH)
@@ -83,8 +82,7 @@ program Options { getConfigFile  = confFile
   pool <- C.genMySQLPool mysqlConfig
   redis <- C.genRedisConnection redisConfig
 
-  let state = stateSet (initConfigState mysqlThreads)
-            $ stateSet (initRedisState redisThreads $ fromString prefix)
+  let state = stateSet (initRedisState redisThreads $ fromString prefix)
             $ stateSet (initUserState mysqlThreads) stateEmpty
 
   let u = simpleEnv pool prefix $ mkCache redis
