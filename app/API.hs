@@ -93,12 +93,12 @@ program Options { getConfigFile  = confFile
   runIO u state mergeData
   scottyOptsT opts (runIO u state) application
   where
-        runIO :: (HasMySQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u b -> IO b
+        runIO :: (HasMySQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u w b -> IO b
         runIO env s m = do
           env0 <- initEnv s env
           runHaxl env0 m
 
-application :: (HasMySQL u, HasOtherEnv C.Cache u) => ScottyH u ()
+application :: (HasMySQL u, HasOtherEnv C.Cache u) => ScottyH u w ()
 application = do
   middleware logStdout
 
