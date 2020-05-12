@@ -32,7 +32,6 @@ library
   build-depends:       base >= 4.7 && < 5
                      , unix-time
                      , text
-                     , mysql-simple
                      , hashable
                      , scotty
                      , haxl
@@ -43,20 +42,21 @@ library
                      , aeson
                      , http-types
                      , cryptohash
-                     , hex
 
                      , yuntan-common-scotty
                      , yuntan-common-scotty-type
                      , yuntan-common-json
                      , yuntan-common-list-result
                      , yuntan-common-order
-                     , yuntan-common-config-mysql
+                     , yuntan-common-config-psql
                      , yuntan-common-config-redis
                      , yuntan-common-redis-caching
                      , yuntan-common-graphql
                      , graphql
                      , hedis
                      , extra
+
+                     , postgresql-simple
   default-language:    Haskell2010
 
 executable yuntan-user
@@ -75,7 +75,7 @@ executable yuntan-user
                      , yaml
                      , text
                      , yuntan-common-scotty-type
-                     , yuntan-common-config-mysql
+                     , yuntan-common-config-psql
                      , yuntan-common-redis-caching
                      , lrucaching
   default-language:    Haskell2010

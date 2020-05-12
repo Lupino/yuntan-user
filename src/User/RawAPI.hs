@@ -1,8 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module User.RawAPI
-  (
-    createUser
+  ( createUser
   , getUser
   , getUserIdByName
   , removeUser
@@ -45,20 +44,20 @@ import           Data.Int                (Int64)
 import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
 import           User.DataSource
 import           User.Types
-import           Yuntan.Types.HasMySQL   (HasMySQL)
+import           Yuntan.Types.HasPSQL    (HasPSQL)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy)
 
-createUser         :: HasMySQL u => UserName -> Password -> GenHaxl u w UserID
-getUser :: HasMySQL u => UserID -> GenHaxl u w (Maybe User)
-getUserIdByName :: HasMySQL u => UserName -> GenHaxl u w (Maybe UserID)
-removeUser         :: HasMySQL u => UserID -> GenHaxl u w Int64
-updateUserName     :: HasMySQL u => UserID -> UserName -> GenHaxl u w Int64
-updateUserPassword :: HasMySQL u => UserID -> Password -> GenHaxl u w Int64
-updateUserExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u w Int64
-updateUserSecureExtra    :: HasMySQL u => UserID -> Extra -> GenHaxl u w Int64
-getUserIdList :: HasMySQL u => From -> Size -> OrderBy -> GenHaxl u w [UserID]
-countUser          :: HasMySQL u => GenHaxl u w Int64
+createUser         :: HasPSQL u => UserName -> Password -> GenHaxl u w UserID
+getUser :: HasPSQL u => UserID -> GenHaxl u w (Maybe User)
+getUserIdByName :: HasPSQL u => UserName -> GenHaxl u w (Maybe UserID)
+removeUser         :: HasPSQL u => UserID -> GenHaxl u w Int64
+updateUserName     :: HasPSQL u => UserID -> UserName -> GenHaxl u w Int64
+updateUserPassword :: HasPSQL u => UserID -> Password -> GenHaxl u w Int64
+updateUserExtra    :: HasPSQL u => UserID -> Extra -> GenHaxl u w Int64
+updateUserSecureExtra    :: HasPSQL u => UserID -> Extra -> GenHaxl u w Int64
+getUserIdList :: HasPSQL u => From -> Size -> OrderBy -> GenHaxl u w [UserID]
+countUser          :: HasPSQL u => GenHaxl u w Int64
 
 createUser name passwd        = uncachedRequest (CreateUser name passwd)
 getUser uid                   = dataFetch (GetUser uid)
@@ -71,21 +70,21 @@ updateUserSecureExtra uid ext = uncachedRequest (UpdateUserSecureExtra uid ext)
 getUserIdList from size order = dataFetch (GetUserIdList from size order)
 countUser                     = dataFetch CountUser
 
-createBind         :: HasMySQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u w BindID
-getBind :: HasMySQL u => BindID -> GenHaxl u w (Maybe Bind)
-getBindIdByName :: HasMySQL u => ServiceName -> GenHaxl u w (Maybe BindID)
-removeBind         :: HasMySQL u => BindID -> GenHaxl u w Int64
-updateBindExtra    :: HasMySQL u => BindID -> Extra -> GenHaxl u w Int64
-countBindByUID     :: HasMySQL u => UserID -> GenHaxl u w Int64
-getBindIdListByUID :: HasMySQL u => UserID -> From -> Size -> OrderBy -> GenHaxl u w [BindID]
-countBindByService :: HasMySQL u => Service -> GenHaxl u w Int64
+createBind         :: HasPSQL u => UserID -> Service -> ServiceName -> Extra -> GenHaxl u w BindID
+getBind            :: HasPSQL u => BindID -> GenHaxl u w (Maybe Bind)
+getBindIdByName    :: HasPSQL u => ServiceName -> GenHaxl u w (Maybe BindID)
+removeBind         :: HasPSQL u => BindID -> GenHaxl u w Int64
+updateBindExtra    :: HasPSQL u => BindID -> Extra -> GenHaxl u w Int64
+countBindByUID     :: HasPSQL u => UserID -> GenHaxl u w Int64
+getBindIdListByUID :: HasPSQL u => UserID -> From -> Size -> OrderBy -> GenHaxl u w [BindID]
+countBindByService :: HasPSQL u => Service -> GenHaxl u w Int64
 getBindIdListByService
-  :: HasMySQL u => Service -> From -> Size -> OrderBy -> GenHaxl u w [BindID]
-countBindByUIDAndService :: HasMySQL u => UserID -> Service -> GenHaxl u w Int64
+  :: HasPSQL u => Service -> From -> Size -> OrderBy -> GenHaxl u w [BindID]
+countBindByUIDAndService :: HasPSQL u => UserID -> Service -> GenHaxl u w Int64
 getBindIdListByUIDAndService
-  :: HasMySQL u
+  :: HasPSQL u
   => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u w [BindID]
-removeBindByUID    :: HasMySQL u => UserID -> GenHaxl u w Int64
+removeBindByUID    :: HasPSQL u => UserID -> GenHaxl u w Int64
 
 createBind uid se n ex = uncachedRequest (CreateBind uid se n ex)
 getBind bid            = dataFetch (GetBind bid)
@@ -100,15 +99,15 @@ countBindByUIDAndService uid srv = dataFetch (CountBindByUIDAndService uid srv)
 getBindIdListByUIDAndService uid srv f s o = dataFetch (GetBindIdListByUIDAndService uid srv f s o)
 removeBindByUID uid    = uncachedRequest (RemoveBindByUID uid)
 
-mergeData :: HasMySQL u => GenHaxl u w ()
+mergeData :: HasPSQL u => GenHaxl u w ()
 mergeData = uncachedRequest MergeData
 
-addGroup                :: HasMySQL u => GroupName -> UserID -> GenHaxl u w ()
-removeGroup             :: HasMySQL u => GroupName -> UserID -> GenHaxl u w Int64
-getGroupListByUserId    :: HasMySQL u => UserID -> GenHaxl u w [GroupName]
-getUserIdListByGroup    :: HasMySQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u w [UserID]
-removeGroupListByUserId :: HasMySQL u => UserID -> GenHaxl u w Int64
-countGroup              :: HasMySQL u => GroupName -> GenHaxl u w Int64
+addGroup                :: HasPSQL u => GroupName -> UserID -> GenHaxl u w Int64
+removeGroup             :: HasPSQL u => GroupName -> UserID -> GenHaxl u w Int64
+getGroupListByUserId    :: HasPSQL u => UserID -> GenHaxl u w [GroupName]
+getUserIdListByGroup    :: HasPSQL u => GroupName -> From -> Size -> OrderBy -> GenHaxl u w [UserID]
+removeGroupListByUserId :: HasPSQL u => UserID -> GenHaxl u w Int64
+countGroup              :: HasPSQL u => GroupName -> GenHaxl u w Int64
 
 addGroup n uid               = uncachedRequest (AddGroup n uid)
 removeGroup n uid            = uncachedRequest (RemoveGroup n uid)
@@ -117,10 +116,10 @@ getUserIdListByGroup n f s o = dataFetch (GetUserIdListByGroup n f s o)
 removeGroupListByUserId uid  = uncachedRequest (RemoveGroupListByUserId uid)
 countGroup n                 = dataFetch (CountGroup n)
 
-saveGroupMeta    :: HasMySQL u => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u w Int64
-getGroupMeta     :: HasMySQL u => GroupName -> GenHaxl u w (Maybe GroupMeta)
-removeGroupMeta  :: HasMySQL u => GroupName -> GenHaxl u w Int64
-getGroupMetaList :: HasMySQL u => GenHaxl u w [GroupMeta]
+saveGroupMeta    :: HasPSQL u => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u w Int64
+getGroupMeta     :: HasPSQL u => GroupName -> GenHaxl u w (Maybe GroupMeta)
+removeGroupMeta  :: HasPSQL u => GroupName -> GenHaxl u w Int64
+getGroupMetaList :: HasPSQL u => GenHaxl u w [GroupMeta]
 
 saveGroupMeta n t s = uncachedRequest (SaveGroupMeta n t s)
 getGroupMeta n      = dataFetch (GetGroupMeta n)

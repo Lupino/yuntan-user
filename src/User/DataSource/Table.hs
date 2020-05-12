@@ -1,96 +1,92 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module User.DataSource.Table
-  (
-    mergeData
+  ( mergeData
+  , users
+  , binds
+  , groups
+  , groupMeta
   ) where
 
-import           Database.MySQL.Simple (execute_)
-import           Yuntan.Types.HasMySQL (MySQL, VersionList, mergeDatabase)
+import           Data.Int             (Int64)
+import           Yuntan.Types.HasPSQL (PSQL, TableName, VersionList,
+                                       createIndex, mergeDatabase)
+import qualified Yuntan.Types.HasPSQL as PSQL (createTable)
 
-import           Control.Monad         (void)
-import           Data.String           (fromString)
+users :: TableName
+users = "users"
 
 
-createUserTable :: MySQL ()
-createUserTable prefix conn = void $ execute_ conn sql
-  where sql = fromString $ concat [ "CREATE TABLE IF NOT EXISTS `", prefix, "_users` ("
-                                  , "  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,"
-                                  , "  `username` varchar(128) NOT NULL,"
-                                  , "  `password` varchar(128) NOT NULL,"
-                                  , "  `extra` TEXT DEFAULT NULL,"
-                                  , "  `created_at` int(10) unsigned NOT NULL,"
-                                  , "  PRIMARY KEY (`id`),"
-                                  , "  UNIQUE KEY `username` (`username`)"
-                                  , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
-                                  ]
+binds :: TableName
+binds = "binds"
 
-createBindTable :: MySQL ()
-createBindTable prefix conn = void $ execute_ conn sql
-  where sql = fromString $ concat [ "CREATE TABLE IF NOT EXISTS `", prefix, "_binds` ("
-                                  , "  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,"
-                                  , "  `user_id` int(10) unsigned NOT NULL,"
-                                  , "  `service` varchar(128) NOT NULL,"
-                                  , "  `name` varchar(128) NOT NULL,"
-                                  , "  `extra` TEXT DEFAULT NULL,"
-                                  , "  `created_at` int(10) unsigned NOT NULL,"
-                                  , "  PRIMARY KEY (`id`),"
-                                  , "  UNIQUE KEY `name` (`name`)"
-                                  , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
-                                  ]
 
-createGroupTable :: MySQL ()
-createGroupTable prefix conn = void $ execute_ conn sql
-  where sql = fromString $ concat [ "CREATE TABLE IF NOT EXISTS `", prefix, "_groups` ("
-                                  , "  `user_id` int(10) unsigned NOT NULL,"
-                                  , "  `group` int(10) unsigned NOT NULL,"
-                                  , "  PRIMARY KEY (`user_id`,`group`)"
-                                  , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
-                                  ]
+groups :: TableName
+groups = "groups"
 
-createGroupMetaTable :: MySQL ()
-createGroupMetaTable prefix conn = void $ execute_ conn sql
-  where sql = fromString $ concat [ "CREATE TABLE IF NOT EXISTS `", prefix, "_group_meta` ("
-                                  , "  `group` varchar(128) NOT NULL,"
-                                  , "  `title` varchar(256) NOT NULL,"
-                                  , "  `summary` varchar(1500) DEFAULT NULL,"
-                                  , "  `created_at` int(10) unsigned NOT NULL,"
-                                  , "  PRIMARY KEY (`group`)"
-                                  , ") ENGINE=InnoDB DEFAULT CHARSET=utf8"
-                                  ]
 
-updateTable_1511230647 :: MySQL ()
-updateTable_1511230647 prefix conn =
-  void $ execute_ conn . fromString $ concat
-    [ "ALTER TABLE `", prefix, "_groups`"
-    , " MODIFY COLUMN `group` varchar(128) NOT NULL"
+groupMeta :: TableName
+groupMeta = "group_meta"
+
+
+createUserTable :: PSQL Int64
+createUserTable =
+  PSQL.createTable users
+    [ "id SERIAL PRIMARY KEY"
+    , "username VARCHAR(128) NOT NULL"
+    , "password VARCHAR(128) NOT NULL"
+    , "extra JSON NOT NULL"
+    , "secure_extra JSON NOT NULL"
+    , "created_at INT NOT NULL"
     ]
 
-updateTable_1515125161 :: MySQL ()
-updateTable_1515125161 prefix conn =
-  void $ execute_ conn . fromString $ concat
-    [ "ALTER TABLE `", prefix, "_binds`"
-    , "  ADD INDEX `user_id` (`user_id`),"
-    , "  ADD INDEX `service` (`service`),"
-    , "  ADD INDEX `user_service` (`user_id`, `service`)"
+
+createBindTable :: PSQL Int64
+createBindTable =
+  PSQL.createTable binds
+    [ "id SERIAL PRIMARY KEY"
+    , "user_id INT NOT NULL"
+    , "service VARCHAR(128) NOT NULL"
+    , "name VARCHAR(128) NOT NULL"
+    , "extra JSON NOT NULL"
+    , "created_at INT NOT NULL"
     ]
 
-updateTable_20180620 :: MySQL ()
-updateTable_20180620 prefix conn =
-  void $ execute_ conn . fromString $ concat
-    [ "ALTER TABLE `", prefix, "_users`"
-    , " ADD COLUMN `secure_extra` TEXT DEFAULT NULL"
+
+createGroupTable :: PSQL Int64
+createGroupTable =
+  PSQL.createTable groups
+    [ "user_id INT NOT NULL"
+    , "group VARCHAR(128) NOT NULL"
+    , "CONSTRAINT group_pk PRIMARY KEY (user_id, group)"
     ]
 
-versionList :: VersionList
+
+createGroupMetaTable :: PSQL Int64
+createGroupMetaTable =
+  PSQL.createTable groupMeta
+    [ "group VARCHAR(128) NOT NULL"
+    , "title VARCHAR(256) NOT NULL"
+    , "summary VARCHAR(1500) DEFAULT NULL"
+    , "created_at INT NOT NULL"
+    , "CONSTRAINT group_meta_pk PRIMARY KEY (group)"
+    ]
+
+
+versionList :: VersionList Int64
 versionList =
-  [ (1, [createUserTable, createBindTable])
+  [ (1, [ createUserTable
+        , createIndex True users "username" ["username"]
+        , createBindTable
+        , createIndex True binds "name" ["name"]
+        , createIndex False binds "user_id" ["user_id"]
+        , createIndex False binds "service" ["service"]
+        , createIndex False binds "user_service" ["user_id", "service"]
+        ]
+    )
   , (2, [createGroupTable])
-  , (3, [updateTable_1511230647])
-  , (4, [updateTable_1515125161])
-  , (6, [updateTable_20180620])
   , (7, [createGroupMetaTable])
   ]
 
-mergeData :: MySQL ()
+mergeData :: PSQL ()
 mergeData = mergeDatabase versionList

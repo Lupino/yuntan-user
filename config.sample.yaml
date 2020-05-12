@@ -1,8 +1,8 @@
-mysql:
+psql:
   db: yuntan_user
   host: 127.0.0.1
-  port: 3306
-  user: root
+  port: 5432
+  user: postgre
   pass: ""
   numStripes: 10
   # ^ The number of stripes (distinct sub-pools) to maintain.
