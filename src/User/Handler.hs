@@ -1,8 +1,8 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module User.Handler
-  (
-    createUserHandler
+  ( createUserHandler
   , requireUser
   , getUserHandler
   , removeUserHandler
@@ -45,10 +45,10 @@ import           Control.Monad           (void)
 import           Control.Monad.Reader    (lift)
 
 import           Data.Int                (Int64)
-import           Haxl.Core               (GenHaxl)
+import           Haxl.Core               (GenHaxl, try)
 import           User
 import           Web.Scotty.Trans        (json, param, rescue)
-import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL)
+import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL, SqlError (..))
 import           Yuntan.Types.ListResult (From, ListResult (..), Size)
 import           Yuntan.Types.OrderBy    (desc)
 import           Yuntan.Types.Scotty     (ActionH)
@@ -72,9 +72,10 @@ createUserHandler = do
     (True, _) -> errorInvalidUserName'
     (False, False) -> errorInvalidUserName
     (False, True) -> do
-
-      uid <- lift $ createUser (pack name) (pack passwd)
-      json =<< lift (toOUser' <$> getUser uid)
+      r <- lift $ try $ createUser (pack name) (pack passwd)
+      case r of
+        Left (e :: SqlError) -> errBadRequest $ show $ sqlErrorDetail e
+        Right uid            -> json =<< lift (toOUser' <$> getUser uid)
 
 verifyPasswordHandler :: HasPSQL u => User -> ActionH u w ()
 verifyPasswordHandler User{getUserPassword = pwd} = do
@@ -120,11 +121,7 @@ getUserHandler :: User -> ActionH u w ()
 getUserHandler = json . toOUser
 
 requireUser :: (HasPSQL u, HasOtherEnv Cache u) => (User -> ActionH u w ()) -> ActionH u w ()
-requireUser act = do
-  user <- apiUser
-  case user of
-    Just u  -> act u
-    Nothing ->  errorUserNotFound
+requireUser act = maybe errorUserNotFound act =<< apiUser
 
   where errorUserNotFound :: ActionH u w ()
         errorUserNotFound = errNotFound "User is not found."
@@ -231,11 +228,7 @@ apiBind = do
                        else return Nothing
 
 requireBind :: (HasPSQL u, HasOtherEnv Cache u) => (Bind -> ActionH u w ()) -> ActionH u w ()
-requireBind act = do
-  bind <- apiBind
-  case bind of
-    Just b  -> act b
-    Nothing ->  errorBindNotFound
+requireBind act = maybe errorBindNotFound act =<< apiBind
 
   where errorBindNotFound :: ActionH u w ()
         errorBindNotFound = errNotFound "Bind is not found."
@@ -245,8 +238,10 @@ createBindHandler User{getUserID = uid} = do
   service <- param "service"
   name <- param "name"
   extra <- decode <$> (param "extra" `rescue` (\_ -> return "null"))
-  bid <- lift $ createBind uid service name $ fromMaybe Null extra
-  json =<< lift (getBind bid)
+  ebid <- lift $ try $ createBind uid service name $ fromMaybe Null extra
+  case ebid of
+    Left (e :: SqlError) -> errBadRequest $ show $ sqlErrorDetail e
+    Right bid            -> json =<< lift (getBind bid)
 
 getBindHandler :: (HasPSQL u, HasOtherEnv Cache u) => ActionH u w ()
 getBindHandler = do

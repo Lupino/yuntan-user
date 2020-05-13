@@ -24,14 +24,13 @@ module User.Types
   , toOUser'
   ) where
 
-import           Data.Aeson                         (FromJSON (..), ToJSON (..),
-                                                     Value (..), object,
-                                                     withObject, (.:), (.=))
-import           Data.Int                           (Int64)
-import           Data.Text                          (Text)
-import           Database.PostgreSQL.Simple.FromRow (FromRow (..), field)
-import           GHC.Generics                       (Generic)
-import           Yuntan.Utils.JSON                  (unionValue)
+import           Data.Aeson           (FromJSON (..), ToJSON (..), Value (..),
+                                       object, withObject, (.:), (.=))
+import           Data.Int             (Int64)
+import           Data.Text            (Text)
+import           GHC.Generics         (Generic)
+import           Yuntan.Types.HasPSQL (FromRow (..), field)
+import           Yuntan.Utils.JSON    (unionValue)
 
 type UserID       = Int64
 type BindID       = Int64

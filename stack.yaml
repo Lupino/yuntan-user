@@ -43,7 +43,7 @@ extra-deps:
 - git: https://github.com/Lupino/Haxl.git
   commit: c4bd7452ff23a51174dca3714f9f4c68454af409
 - git: https://github.com/Lupino/yuntan-common.git
-  commit: 719e5890653e0eca3015f825d1e150cb9c28df0c
+  commit: 1a13dbf92801f5b5653cc09480050dbad555da93
   subdirs:
   - yuntan-common-scotty
   - yuntan-common-scotty-type
@@ -54,7 +54,6 @@ extra-deps:
   - yuntan-common-order
   - yuntan-common-config-redis
   - yuntan-common-redis-caching
-  - yuntan-common-config-mysql
   - yuntan-common-graphql
 - git: https://github.com/jdnavarro/graphql-haskell.git
   commit: 40f9024b51900c73bc0f65444c16022bd73820be

@@ -10,7 +10,8 @@ module User.DataSource.Table
 
 import           Data.Int             (Int64)
 import           Yuntan.Types.HasPSQL (PSQL, TableName, VersionList,
-                                       createIndex, mergeDatabase)
+                                       constraintPrimaryKey, createIndex,
+                                       mergeDatabase)
 import qualified Yuntan.Types.HasPSQL as PSQL (createTable)
 
 users :: TableName
@@ -35,8 +36,8 @@ createUserTable =
     [ "id SERIAL PRIMARY KEY"
     , "username VARCHAR(128) NOT NULL"
     , "password VARCHAR(128) NOT NULL"
-    , "extra JSON NOT NULL"
-    , "secure_extra JSON NOT NULL"
+    , "extra JSON"
+    , "secure_extra JSON"
     , "created_at INT NOT NULL"
     ]
 
@@ -48,29 +49,29 @@ createBindTable =
     , "user_id INT NOT NULL"
     , "service VARCHAR(128) NOT NULL"
     , "name VARCHAR(128) NOT NULL"
-    , "extra JSON NOT NULL"
+    , "extra JSON"
     , "created_at INT NOT NULL"
     ]
 
 
 createGroupTable :: PSQL Int64
-createGroupTable =
+createGroupTable prefix =
   PSQL.createTable groups
     [ "user_id INT NOT NULL"
-    , "group VARCHAR(128) NOT NULL"
-    , "CONSTRAINT group_pk PRIMARY KEY (user_id, group)"
-    ]
+    , "\"group\" VARCHAR(128) NOT NULL"
+    , constraintPrimaryKey prefix "group_pk" ["user_id", "\"group\""]
+    ] prefix
 
 
 createGroupMetaTable :: PSQL Int64
-createGroupMetaTable =
+createGroupMetaTable prefix =
   PSQL.createTable groupMeta
-    [ "group VARCHAR(128) NOT NULL"
+    [ "\"group\" VARCHAR(128) NOT NULL"
     , "title VARCHAR(256) NOT NULL"
     , "summary VARCHAR(1500) DEFAULT NULL"
     , "created_at INT NOT NULL"
-    , "CONSTRAINT group_meta_pk PRIMARY KEY (group)"
-    ]
+    , constraintPrimaryKey prefix "group_meta_pk" ["\"group\""]
+    ] prefix
 
 
 versionList :: VersionList Int64

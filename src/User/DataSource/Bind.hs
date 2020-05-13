@@ -15,16 +15,15 @@ module User.DataSource.Bind
   , getBindIdListByService
   ) where
 
-import           Data.Int                   (Int64)
+import           Data.Int                (Int64)
 import           Data.UnixTime
-import           Database.PostgreSQL.Simple (Only (..))
-import           User.DataSource.Table      (binds)
+import           User.DataSource.Table   (binds)
 import           User.Types
-import           Yuntan.Types.HasPSQL       (PSQL, count, delete, insertRet,
-                                             selectOne, selectOneOnly,
-                                             selectOnly, update)
-import           Yuntan.Types.ListResult    (From, Size)
-import           Yuntan.Types.OrderBy       (OrderBy)
+import           Yuntan.Types.HasPSQL    (Only (..), PSQL, count, delete,
+                                          insertRet, selectOne, selectOneOnly,
+                                          selectOnly, update)
+import           Yuntan.Types.ListResult (From, Size)
+import           Yuntan.Types.OrderBy    (OrderBy)
 
 createBind :: UserID -> Service -> ServiceName -> Extra -> PSQL BindID
 createBind uid service name extra prefix conn = do
