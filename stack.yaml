@@ -43,7 +43,7 @@ extra-deps:
 - git: https://github.com/Lupino/Haxl.git
   commit: c4bd7452ff23a51174dca3714f9f4c68454af409
 - git: https://github.com/Lupino/yuntan-common.git
-  commit: 1a13dbf92801f5b5653cc09480050dbad555da93
+  commit: a74733592cd1e9135468cdc88e507a13cd79b85c
   subdirs:
   - yuntan-common-scotty
   - yuntan-common-scotty-type
