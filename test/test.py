@@ -1,6 +1,5 @@
 import requests
 from urllib.parse import urlencode
-from time import time
 import json
 
 host = 'http://127.0.0.1:3000'
@@ -25,15 +24,6 @@ def check_equal(a, b, key = None):
     else:
         if a[key] != b[key]:
             raise Exception("Value must Equal. except: {} but got {}".format(a[key], b[key]))
-
-def check_not_equal(a, b, key = None):
-    if key is None:
-        if a == b:
-            raise Exception("Value must Not Equal. except: {} != {}".format(a, b))
-    else:
-        if a[key] == b[key]:
-            raise Exception("Value must Not Equal. except: {} != {}".format(a[key], b[key]))
-
 
 def run_post(uri, data = None, query=None):
     rsp = requests.post(api(uri, query), data = data)
