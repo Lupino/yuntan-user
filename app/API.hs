@@ -2,15 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main
-  (
-    main
+  ( main
   ) where
 
+import           Control.Monad                        (when)
 import           Data.Default.Class                   (def)
 import           Data.Streaming.Network.Internal      (HostPreference (Host))
 import           Data.String                          (fromString)
 import           Network.Wai.Handler.Warp             (setHost, setPort)
 import           Network.Wai.Middleware.RequestLogger (logStdout)
+import           System.Exit                          (exitSuccess)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
@@ -35,6 +36,7 @@ data Options = Options
     , getHost        :: String
     , getPort        :: Int
     , getTablePrefix :: String
+    , getDryRun      :: Bool
     }
 
 parser :: Parser Options
@@ -57,6 +59,8 @@ parser = Options <$> strOption (long "config"
                                 <> metavar "TABLE_PREFIX"
                                 <> help "table prefix."
                                 <> value "test")
+                 <*> switch    (long "dry-run"
+                                <> help "only create tables.")
 
 main :: IO ()
 main = execParser opts >>= program
@@ -71,6 +75,7 @@ program Options { getConfigFile  = confFile
                 , getTablePrefix = prefix
                 , getHost        = host
                 , getPort        = port
+                , getDryRun      = dryRun
                 } = do
   (Right conf) <- Y.decodeFileEither confFile
 
@@ -91,6 +96,9 @@ program Options { getConfigFile  = confFile
                             $ setHost (Host host) (settings def) }
 
   runIO u state mergeData
+
+  when dryRun exitSuccess
+
   scottyOptsT opts (runIO u state) application
   where
         runIO :: (HasPSQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u w b -> IO b
