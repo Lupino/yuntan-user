@@ -24,8 +24,7 @@ import           User.DataSource.Group
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
-import           Yuntan.Types.HasMySQL    (HasMySQL, MySQL, mysqlPool,
-                                           tablePrefix)
+import           Yuntan.Types.HasPSQL     (HasPSQL, PSQL, psqlPool, tablePrefix)
 import           Yuntan.Types.ListResult  (From, Size)
 import           Yuntan.Types.OrderBy     (OrderBy)
 
@@ -52,20 +51,20 @@ data UserReq a where
 
   CreateBind         :: UserID -> Service -> ServiceName -> Extra -> UserReq BindID
   GetBind            :: BindID -> UserReq (Maybe Bind)
-  GetBindIdByName      :: ServiceName -> UserReq (Maybe BindID)
+  GetBindIdByName    :: ServiceName -> UserReq (Maybe BindID)
   RemoveBind         :: BindID -> UserReq Int64
   UpdateBindExtra    :: BindID -> Extra -> UserReq Int64
   CountBindByUID     :: UserID -> UserReq Int64
-  GetBindIdListByUID   :: UserID -> From -> Size -> OrderBy -> UserReq [BindID]
+  GetBindIdListByUID :: UserID -> From -> Size -> OrderBy -> UserReq [BindID]
   RemoveBindByUID    :: UserID -> UserReq Int64
   CountBindByService :: Service -> UserReq Int64
   GetBindIdListByService :: Service -> From -> Size -> OrderBy -> UserReq [BindID]
   CountBindByUIDAndService :: UserID -> Service -> UserReq Int64
   GetBindIdListByUIDAndService :: UserID -> Service -> From -> Size -> OrderBy -> UserReq [BindID]
 
-  MergeData          :: UserReq ()
+  MergeData               :: UserReq ()
 
-  AddGroup                :: GroupName -> UserID -> UserReq ()
+  AddGroup                :: GroupName -> UserID -> UserReq Int64
   RemoveGroup             :: GroupName -> UserID -> UserReq Int64
   GetGroupListByUserId    :: UserID -> UserReq [GroupName]
   GetUserIdListByGroup    :: GroupName -> From -> Size -> OrderBy -> UserReq [UserID]
@@ -128,11 +127,11 @@ instance StateKey UserReq where
 instance DataSourceName UserReq where
   dataSourceName _ = "UserDataSource"
 
-instance HasMySQL u => DataSource u UserReq where
+instance HasPSQL u => DataSource u UserReq where
   fetch = doFetch
 
 doFetch
-  :: HasMySQL u
+  :: HasPSQL u
   => State UserReq
   -> Flags
   -> u
@@ -144,21 +143,21 @@ doFetch _state _flags _user = AsyncFetch $ \reqs inner -> do
   inner
   mapM_ wait asyncs
 
-fetchAsync :: HasMySQL u => QSem -> u -> BlockedFetch UserReq -> IO (Async ())
+fetchAsync :: HasPSQL u => QSem -> u -> BlockedFetch UserReq -> IO (Async ())
 fetchAsync sem env req = async $
   Control.Exception.bracket_ (waitQSem sem) (signalQSem sem) $ withResource pool $ fetchSync req prefix
 
-  where pool   = mysqlPool env
+  where pool   = psqlPool env
         prefix = tablePrefix env
 
-fetchSync :: BlockedFetch UserReq -> MySQL ()
+fetchSync :: BlockedFetch UserReq -> PSQL ()
 fetchSync (BlockedFetch req rvar) prefix conn = do
   e <- Control.Exception.try $ fetchReq req prefix conn
   case e of
     Left ex -> putFailure rvar (ex :: Control.Exception.SomeException)
     Right a -> putSuccess rvar a
 
-fetchReq :: UserReq a -> MySQL a
+fetchReq :: UserReq a -> PSQL a
 fetchReq  (CreateUser n h)                = createUser n h
 fetchReq  (GetUser k)                     = getUser k
 fetchReq  (GetUserIdByName k)             = getUserIdByName k

@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-14.6
+resolver: lts-15.12
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -40,19 +40,21 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
+- git: https://github.com/facebook/Haxl.git
+  commit: 2d3731ec7a9959c19f74baa5613ed1a3363ab798
 - git: https://github.com/Lupino/yuntan-common.git
-  commit: d33d75348877c1339b34e20abcff6ed4df567adf
+  commit: 350bda5b5dbb542e57a408c4a6618fd51d2070ea
   subdirs:
   - yuntan-common-scotty
   - yuntan-common-scotty-type
-  - yuntan-common-graphql
-  - yuntan-common-config-mysql
+  - yuntan-common-config-psql
   - yuntan-common-list-result
   - yuntan-common-result
   - yuntan-common-json
   - yuntan-common-order
   - yuntan-common-config-redis
   - yuntan-common-redis-caching
+  - yuntan-common-graphql
 - git: https://github.com/jdnavarro/graphql-haskell.git
   commit: 40f9024b51900c73bc0f65444c16022bd73820be
 - git: https://github.com/Lupino/jl.git

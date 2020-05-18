@@ -1,8 +1,8 @@
-mysql:
+psql:
   db: yuntan_user
   host: 127.0.0.1
-  port: 3306
-  user: root
+  port: 5432
+  user: postgres
   pass: ""
   numStripes: 10
   # ^ The number of stripes (distinct sub-pools) to maintain.
@@ -23,3 +23,12 @@ mysql:
 
   numThreads: 10
   # numThreads of fetch async for haxl
+
+redis:
+  db: 0
+  host: redis
+  port: 6379
+  enable: false
+  maxConnections: 50
+  idleTime: 30
+  numThreads: 50

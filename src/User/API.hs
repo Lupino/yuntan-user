@@ -53,7 +53,7 @@ import           User.RawAPI             as X (countBindByService,
                                                getUserIdListByGroup, mergeData)
 import qualified User.RawAPI             as RawAPI
 import           User.Types
-import           Yuntan.Types.HasMySQL   (HasMySQL, HasOtherEnv)
+import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL)
 import           Yuntan.Types.ListResult (From, Size)
 import           Yuntan.Types.OrderBy    (OrderBy, desc)
 import           Yuntan.Utils.RedisCache (cached, cached', remove)
@@ -76,42 +76,42 @@ genCountKey k = fromString $ "count:" ++ k
 unCacheCount :: HasOtherEnv Cache u => String -> GenHaxl u w a -> GenHaxl u w a
 unCacheCount k io = io $> remove redisEnv (genCountKey k)
 
-createUser :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> Password -> GenHaxl u w UserID
+createUser :: (HasPSQL u, HasOtherEnv Cache u) => UserName -> Password -> GenHaxl u w UserID
 createUser n p = unCacheCount "user" $ RawAPI.createUser n p
 
-getUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w (Maybe User)
+getUser :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w (Maybe User)
 getUser uid = cached redisEnv (genUserKey uid) $ fillUser =<< RawAPI.getUser uid
 
-getUserByName :: (HasMySQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u w (Maybe User)
+getUserByName :: (HasPSQL u, HasOtherEnv Cache u) => UserName -> GenHaxl u w (Maybe User)
 getUserByName name = maybeM (pure Nothing) getUser $ getUserIdByName name
 
-removeUser :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
+removeUser :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
 removeUser uid = unCacheUser uid $ unCacheCount "user" $ RawAPI.removeUser uid
 
-updateUserName :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> UserName -> GenHaxl u w Int64
+updateUserName :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> UserName -> GenHaxl u w Int64
 updateUserName uid name = unCacheUser uid $ RawAPI.updateUserName uid name
 
-updateUserPassword :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Password -> GenHaxl u w Int64
+updateUserPassword :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> Password -> GenHaxl u w Int64
 updateUserPassword uid passwd = unCacheUser uid $ RawAPI.updateUserPassword uid passwd
 
-updateUserExtra :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u w Int64
+updateUserExtra :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u w Int64
 updateUserExtra uid extra = unCacheUser uid $ RawAPI.updateUserExtra uid extra
 
-updateUserSecureExtra :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u w Int64
+updateUserSecureExtra :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> Extra -> GenHaxl u w Int64
 updateUserSecureExtra uid extra = unCacheUser uid $ RawAPI.updateUserSecureExtra uid extra
 
-getUsers :: (HasMySQL u, HasOtherEnv Cache u) => From -> Size -> OrderBy -> GenHaxl u w [User]
+getUsers :: (HasPSQL u, HasOtherEnv Cache u) => From -> Size -> OrderBy -> GenHaxl u w [User]
 getUsers from size order = do
   uids <- getUserIdList from size order
   catMaybes <$> for uids getUser
 
-countUser :: (HasMySQL u, HasOtherEnv Cache u) => GenHaxl u w Int64
+countUser :: (HasPSQL u, HasOtherEnv Cache u) => GenHaxl u w Int64
 countUser = cached' redisEnv (genCountKey "user") RawAPI.countUser
 
 genBindKey :: BindID -> ByteString
 genBindKey bid = fromString $ "bind:" ++ show bid
 
-unCacheBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w a -> GenHaxl u w a
+unCacheBind :: (HasPSQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w a -> GenHaxl u w a
 unCacheBind bid io = do
   b <- RawAPI.getBind bid
   r <- io
@@ -122,45 +122,45 @@ unCacheBind bid io = do
       remove redisEnv $ genBindKey $ getBindID b0
       return r
 
-createBind :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u w BindID
+createBind :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> Service -> ServiceName -> Extra -> GenHaxl u w BindID
 createBind uid se n ex = unCacheUser uid $ RawAPI.createBind uid se n ex
 
-getBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w (Maybe Bind)
+getBind :: (HasPSQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w (Maybe Bind)
 getBind bid = cached redisEnv (genBindKey bid) $ RawAPI.getBind bid
 
 getBindByName
-  :: (HasMySQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u w (Maybe Bind)
+  :: (HasPSQL u, HasOtherEnv Cache u) => ServiceName -> GenHaxl u w (Maybe Bind)
 getBindByName n = maybeM (pure Nothing) getBind $ RawAPI.getBindIdByName n
 
-removeBind :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w Int64
+removeBind :: (HasPSQL u, HasOtherEnv Cache u) => BindID -> GenHaxl u w Int64
 removeBind bid = unCacheBind bid $ RawAPI.removeBind bid
 
-updateBindExtra :: (HasMySQL u, HasOtherEnv Cache u) => BindID -> Extra -> GenHaxl u w Int64
+updateBindExtra :: (HasPSQL u, HasOtherEnv Cache u) => BindID -> Extra -> GenHaxl u w Int64
 updateBindExtra bid ex = unCacheBind bid $ RawAPI.updateBindExtra bid ex
 
-getBindList :: (HasMySQL u, HasOtherEnv Cache u) => [BindID] -> GenHaxl u w [Bind]
+getBindList :: (HasPSQL u, HasOtherEnv Cache u) => [BindID] -> GenHaxl u w [Bind]
 getBindList bids = catMaybes <$> for bids getBind
 
 getBindListByUID
-  :: (HasMySQL u, HasOtherEnv Cache u)
+  :: (HasPSQL u, HasOtherEnv Cache u)
   => UserID -> From -> Size -> OrderBy -> GenHaxl u w [Bind]
 getBindListByUID uid f s o = getBindList =<< RawAPI.getBindIdListByUID uid f s o
 
 getBindListByService
-  :: (HasMySQL u, HasOtherEnv Cache u)
+  :: (HasPSQL u, HasOtherEnv Cache u)
   => Service -> From -> Size -> OrderBy -> GenHaxl u w [Bind]
 getBindListByService srv f s o =
   getBindList =<< RawAPI.getBindIdListByService srv f s o
 
 getBindListByUIDAndService
-  :: (HasMySQL u, HasOtherEnv Cache u)
+  :: (HasPSQL u, HasOtherEnv Cache u)
   => UserID -> Service -> From -> Size -> OrderBy -> GenHaxl u w [Bind]
 getBindListByUIDAndService uid srv f s o = getBindList =<< RawAPI.getBindIdListByUIDAndService uid srv f s o
 
-removeBindByUID :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
+removeBindByUID :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
 removeBindByUID uid = unCacheUser uid $ RawAPI.removeBindByUID uid
 
-fillBinds :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
+fillBinds :: (HasPSQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
 fillBinds (Just u@User{getUserID = uid}) = do
   binds <- getBindListByUID uid 0 5 $ desc "id"
   return (Just u { getUserBinds = binds })
@@ -173,7 +173,7 @@ groupKey name = "group:" ++ T.unpack name
 genGroupKey :: GroupName -> ByteString
 genGroupKey name = fromString $ groupKey name
 
-unCacheGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w a -> GenHaxl u w a
+unCacheGroup :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w a -> GenHaxl u w a
 unCacheGroup name io = do
   !r <- io
   remove redisEnv $ genCountKey (groupKey name)
@@ -181,7 +181,7 @@ unCacheGroup name io = do
   remove redisEnv $ fromString "groups"
   return r
 
-unCacheGroups :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w a -> GenHaxl u w a
+unCacheGroups :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w a -> GenHaxl u w a
 unCacheGroups uid io = do
   !r <- io
   names <- getGroupListByUserId uid
@@ -190,20 +190,20 @@ unCacheGroups uid io = do
   remove redisEnv $ fromString "groups"
   return r
 
-addGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u w ()
+addGroup :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u w Int64
 addGroup n uid = unCacheUser uid $ unCacheGroup n $ RawAPI.addGroup n uid
 
-removeGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u w Int64
+removeGroup :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> UserID -> GenHaxl u w Int64
 removeGroup n uid =
   unCacheUser uid
     $ unCacheGroup n
     $ RawAPI.removeGroup n uid
 
-removeGroupListByUserId :: (HasMySQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
+removeGroupListByUserId :: (HasPSQL u, HasOtherEnv Cache u) => UserID -> GenHaxl u w Int64
 removeGroupListByUserId uid  =
   unCacheUser uid $ unCacheGroups uid $ RawAPI.removeGroupListByUserId uid
 
-fillGroups :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
+fillGroups :: (HasPSQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
 fillGroups (Just u@User{getUserID = uid}) = do
   groups <- getGroupListByUserId uid
   return (Just u { getUserGroups = groups })
@@ -211,34 +211,34 @@ fillGroups (Just u@User{getUserID = uid}) = do
 fillGroups Nothing = return Nothing
 
 getUserListByGroup
-  :: (HasMySQL u, HasOtherEnv Cache u)
+  :: (HasPSQL u, HasOtherEnv Cache u)
   => GroupName -> From -> Size -> OrderBy -> GenHaxl u w [User]
 getUserListByGroup group f s o = do
   uids <- getUserIdListByGroup group f s o
   catMaybes <$> for uids getUser
 
-countGroup :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w Int64
+countGroup :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w Int64
 countGroup name =
   cached' redisEnv (genCountKey (groupKey name)) $ RawAPI.countGroup name
 
-fillUser :: (HasMySQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
+fillUser :: (HasPSQL u, HasOtherEnv Cache u) => Maybe User -> GenHaxl u w (Maybe User)
 fillUser u = fillGroups =<< fillBinds u
 
-saveGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u w Int64
+saveGroupMeta :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> GroupTitle -> GroupSummary -> GenHaxl u w Int64
 saveGroupMeta n t s = unCacheGroup n $ RawAPI.saveGroupMeta n t s
 
-removeGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w Int64
+removeGroupMeta :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w Int64
 removeGroupMeta n = unCacheGroup n $ RawAPI.removeGroupMeta n
 
-getGroupMeta :: (HasMySQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w (Maybe GroupMeta)
+getGroupMeta :: (HasPSQL u, HasOtherEnv Cache u) => GroupName -> GenHaxl u w (Maybe GroupMeta)
 getGroupMeta n = cached redisEnv (genGroupKey n) $ fillGroupUserCount =<< RawAPI.getGroupMeta n
 
-getGroupMetaList :: (HasMySQL u, HasOtherEnv Cache u) => GenHaxl u w [GroupMeta]
+getGroupMetaList :: (HasPSQL u, HasOtherEnv Cache u) => GenHaxl u w [GroupMeta]
 getGroupMetaList = cached' redisEnv (fromString "groups") $ do
   gs <- RawAPI.getGroupMetaList
   catMaybes <$> for gs (fillGroupUserCount . Just)
 
-fillGroupUserCount :: HasMySQL u => Maybe GroupMeta -> GenHaxl u w (Maybe GroupMeta)
+fillGroupUserCount :: HasPSQL u => Maybe GroupMeta -> GenHaxl u w (Maybe GroupMeta)
 fillGroupUserCount (Just g@GroupMeta{getGroup = group}) = do
   uc <- RawAPI.countGroup group
   return (Just g {getGroupUserCount = uc})

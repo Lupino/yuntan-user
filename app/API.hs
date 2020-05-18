@@ -2,19 +2,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main
-  (
-    main
+  ( main
   ) where
 
+import           Control.Monad                        (when)
 import           Data.Default.Class                   (def)
 import           Data.Streaming.Network.Internal      (HostPreference (Host))
 import           Data.String                          (fromString)
 import           Network.Wai.Handler.Warp             (setHost, setPort)
 import           Network.Wai.Middleware.RequestLogger (logStdout)
+import           System.Exit                          (exitSuccess)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Types.HasMySQL                (HasMySQL, HasOtherEnv,
+import           Yuntan.Types.HasPSQL                 (HasOtherEnv, HasPSQL,
                                                        simpleEnv)
 import           Yuntan.Types.Scotty                  (ScottyH)
 import           Yuntan.Utils.RedisCache              (initRedisState)
@@ -28,14 +29,15 @@ import           User.Handler
 import qualified Data.Yaml                            as Y
 import qualified User.Config                          as C
 
-import           Data.Semigroup                       ((<>))
 import           Options.Applicative
 
-data Options = Options { getConfigFile  :: String
-                       , getHost        :: String
-                       , getPort        :: Int
-                       , getTablePrefix :: String
-                       }
+data Options = Options
+    { getConfigFile  :: String
+    , getHost        :: String
+    , getPort        :: Int
+    , getTablePrefix :: String
+    , getDryRun      :: Bool
+    }
 
 parser :: Parser Options
 parser = Options <$> strOption (long "config"
@@ -57,6 +59,8 @@ parser = Options <$> strOption (long "config"
                                 <> metavar "TABLE_PREFIX"
                                 <> help "table prefix."
                                 <> value "test")
+                 <*> switch    (long "dry-run"
+                                <> help "only create tables.")
 
 main :: IO ()
 main = execParser opts >>= program
@@ -71,34 +75,38 @@ program Options { getConfigFile  = confFile
                 , getTablePrefix = prefix
                 , getHost        = host
                 , getPort        = port
+                , getDryRun      = dryRun
                 } = do
   (Right conf) <- Y.decodeFileEither confFile
 
-  let mysqlConfig  = C.mysqlConfig conf
-      mysqlThreads = C.mysqlHaxlNumThreads mysqlConfig
+  let psqlConfig  = C.psqlConfig conf
+      psqlThreads = C.psqlHaxlNumThreads psqlConfig
       redisConfig  = C.redisConfig conf
       redisThreads = C.redisHaxlNumThreads redisConfig
 
-  pool <- C.genMySQLPool mysqlConfig
+  pool <- C.genPSQLPool psqlConfig
   redis <- C.genRedisConnection redisConfig
 
   let state = stateSet (initRedisState redisThreads $ fromString prefix)
-            $ stateSet (initUserState mysqlThreads) stateEmpty
+            $ stateSet (initUserState psqlThreads) stateEmpty
 
-  let u = simpleEnv pool prefix $ mkCache redis
+  let u = simpleEnv pool (fromString prefix) $ mkCache redis
 
   let opts = def { settings = setPort port
                             $ setHost (Host host) (settings def) }
 
   runIO u state mergeData
+
+  when dryRun exitSuccess
+
   scottyOptsT opts (runIO u state) application
   where
-        runIO :: (HasMySQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u w b -> IO b
+        runIO :: (HasPSQL u, HasOtherEnv C.Cache u) => u -> StateStore -> GenHaxl u w b -> IO b
         runIO env s m = do
           env0 <- initEnv s env
           runHaxl env0 m
 
-application :: (HasMySQL u, HasOtherEnv C.Cache u) => ScottyH u w ()
+application :: (HasPSQL u, HasOtherEnv C.Cache u) => ScottyH u w ()
 application = do
   middleware logStdout
 
