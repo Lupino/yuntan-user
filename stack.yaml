@@ -40,10 +40,10 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- git: https://github.com/Lupino/Haxl.git
-  commit: c4bd7452ff23a51174dca3714f9f4c68454af409
+- git: https://github.com/facebook/Haxl.git
+  commit: 2d3731ec7a9959c19f74baa5613ed1a3363ab798
 - git: https://github.com/Lupino/yuntan-common.git
-  commit: a74733592cd1e9135468cdc88e507a13cd79b85c
+  commit: 350bda5b5dbb542e57a408c4a6618fd51d2070ea
   subdirs:
   - yuntan-common-scotty
   - yuntan-common-scotty-type

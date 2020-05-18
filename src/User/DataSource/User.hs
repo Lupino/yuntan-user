@@ -28,7 +28,7 @@ createUser :: UserName -> Password -> PSQL UserID
 createUser name passwd prefix conn = do
   t <- getUnixTime
   insertRet users ["username", "password", "extra", "secure_extra", "created_at"] "id"
-    (name, passwd, "{}" :: String, "{}" :: String, show $ toEpochTime t) prefix conn
+    (name, passwd, "{}" :: String, "{}" :: String, show $ toEpochTime t) 0 prefix conn
 
 getUser :: UserID -> PSQL (Maybe User)
 getUser uid = selectOne users ["*"] "id = ?" (Only uid)

@@ -29,7 +29,7 @@ createBind :: UserID -> Service -> ServiceName -> Extra -> PSQL BindID
 createBind uid service name extra prefix conn = do
   t <- getUnixTime
   insertRet binds ["user_id", "service", "name", "extra", "created_at"] "id"
-    (uid, service, name, extra, show $ toEpochTime t) prefix conn
+    (uid, service, name, extra, show $ toEpochTime t) 0 prefix conn
 
 getBind :: BindID -> PSQL (Maybe Bind)
 getBind bid = selectOne binds ["*"] "id = ?" (Only bid)
