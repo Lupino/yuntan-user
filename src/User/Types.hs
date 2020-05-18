@@ -27,6 +27,7 @@ module User.Types
 import           Data.Aeson           (FromJSON (..), ToJSON (..), Value (..),
                                        object, withObject, (.:), (.=))
 import           Data.Int             (Int64)
+import           Data.Maybe           (fromMaybe)
 import           Data.Text            (Text)
 import           GHC.Generics         (Generic)
 import           Yuntan.Types.HasPSQL (FromRow (..), field)
@@ -62,8 +63,8 @@ instance FromRow User where
     getUserID <- field
     getUserName <- field
     getUserPassword <- field
-    getUserExtra <- field
-    getUserSecureExtra <- field
+    getUserExtra <- fromMaybe Null <$> field
+    getUserSecureExtra <- fromMaybe Null <$> field
     getUserCreatedAt <- field
     return User
       { getUserBinds = []
