@@ -36,27 +36,25 @@ module User.API
   , module X
   ) where
 
-import           Control.Monad.Extra     (maybeM)
-import           Data.ByteString         (ByteString)
-import           Data.Int                (Int64)
-import           Data.Maybe              (catMaybes)
-import           Data.String             (fromString)
-import qualified Data.Text               as T (unpack)
-import           Data.Traversable        (for)
-import           Haxl.Core               (GenHaxl)
-import           User.Config             (Cache, redisEnv)
-import           User.RawAPI             as X (countBindByService,
-                                               countBindByUID,
-                                               countBindByUIDAndService,
-                                               getGroupListByUserId,
-                                               getUserIdByName, getUserIdList,
-                                               getUserIdListByGroup, mergeData)
-import qualified User.RawAPI             as RawAPI
+import           Control.Monad.Extra (maybeM)
+import           Data.ByteString     (ByteString)
+import           Data.Int            (Int64)
+import           Data.Maybe          (catMaybes)
+import           Data.String         (fromString)
+import qualified Data.Text           as T (unpack)
+import           Data.Traversable    (for)
+import           Database.PSQL.Types (From, HasOtherEnv, HasPSQL, OrderBy, Size,
+                                      desc)
+import           Haxl.Core           (GenHaxl)
+import           Haxl.RedisCache     (cached, cached', remove)
+import           User.Config         (Cache, redisEnv)
+import qualified User.RawAPI         as RawAPI
+import           User.RawAPI         as X (countBindByService, countBindByUID,
+                                           countBindByUIDAndService,
+                                           getGroupListByUserId,
+                                           getUserIdByName, getUserIdList,
+                                           getUserIdListByGroup, mergeData)
 import           User.Types
-import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL)
-import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (OrderBy, desc)
-import           Yuntan.Utils.RedisCache (cached, cached', remove)
 
 ($>) :: GenHaxl u w a -> GenHaxl u w () -> GenHaxl u w a
 io $> a = do

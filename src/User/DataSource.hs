@@ -13,20 +13,19 @@ module User.DataSource (
 
 import           Data.Hashable            (Hashable (..))
 import           Data.Typeable            (Typeable)
+import           Database.PSQL.Types      (Connection, From, HasPSQL, OrderBy,
+                                           PSQL, PSQLPool, Size, TablePrefix,
+                                           psqlPool, runPSQL, tablePrefix)
 import           Haxl.Core                (BlockedFetch (..), DataSource,
                                            DataSourceName, Flags,
                                            PerformFetch (..), ShowP, State,
                                            StateKey, dataSourceName, fetch,
                                            putFailure, putSuccess, showp)
-
 import           User.DataSource.Bind
 import           User.DataSource.Group
 import           User.DataSource.Table
 import           User.DataSource.User
 import           User.Types
-import           Yuntan.Types.HasPSQL     (HasPSQL, PSQL, psqlPool, tablePrefix)
-import           Yuntan.Types.ListResult  (From, Size)
-import           Yuntan.Types.OrderBy     (OrderBy)
 
 import qualified Control.Exception        (SomeException, bracket_, try)
 import           Data.Int                 (Int64)
@@ -139,20 +138,17 @@ doFetch
 
 doFetch _state _flags _user = AsyncFetch $ \reqs inner -> do
   sem <- newQSem $ numThreads _state
-  asyncs <- mapM (fetchAsync sem _user) reqs
+  asyncs <- mapM (fetchAsync sem (psqlPool _user) (tablePrefix _user)) reqs
   inner
   mapM_ wait asyncs
 
-fetchAsync :: HasPSQL u => QSem -> u -> BlockedFetch UserReq -> IO (Async ())
-fetchAsync sem env req = async $
+fetchAsync :: QSem -> PSQLPool -> TablePrefix -> BlockedFetch UserReq -> IO (Async ())
+fetchAsync sem pool prefix req = async $
   Control.Exception.bracket_ (waitQSem sem) (signalQSem sem) $ withResource pool $ fetchSync req prefix
 
-  where pool   = psqlPool env
-        prefix = tablePrefix env
-
-fetchSync :: BlockedFetch UserReq -> PSQL ()
+fetchSync :: BlockedFetch UserReq -> TablePrefix -> Connection -> IO ()
 fetchSync (BlockedFetch req rvar) prefix conn = do
-  e <- Control.Exception.try $ fetchReq req prefix conn
+  e <- Control.Exception.try $ runPSQL prefix conn (fetchReq req)
   case e of
     Left ex -> putFailure rvar (ex :: Control.Exception.SomeException)
     Right a -> putSuccess rvar a

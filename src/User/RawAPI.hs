@@ -40,13 +40,11 @@ module User.RawAPI
   , getGroupMetaList
   ) where
 
-import           Data.Int                (Int64)
-import           Haxl.Core               (GenHaxl, dataFetch, uncachedRequest)
+import           Data.Int            (Int64)
+import           Database.PSQL.Types (From, HasPSQL, OrderBy, Size)
+import           Haxl.Core           (GenHaxl, dataFetch, uncachedRequest)
 import           User.DataSource
 import           User.Types
-import           Yuntan.Types.HasPSQL    (HasPSQL)
-import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (OrderBy)
 
 createUser         :: HasPSQL u => UserName -> Password -> GenHaxl u w UserID
 getUser :: HasPSQL u => UserID -> GenHaxl u w (Maybe User)

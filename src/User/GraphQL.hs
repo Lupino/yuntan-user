@@ -4,31 +4,33 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module User.GraphQL
-  (
-    schema
+  ( schema
   , schemaByUser
   , schemaByBind
   , schemaByService
   ) where
 
-import           Control.Applicative     (Alternative (..))
-import           Data.GraphQL.AST        (Name)
-import           Data.GraphQL.Schema     (Argument (..), Resolver, Schema,
-                                          Value (..), arrayA', object',
-                                          objectA', scalar, scalarA)
-import           Data.List.NonEmpty      (NonEmpty ((:|)), fromList)
-import           Data.Maybe              (fromMaybe)
-import           Data.Text               (Text)
-import           Haxl.Core               (GenHaxl)
+import           Control.Applicative (Alternative (..))
+import           Data.Aeson.Helper   (union)
+import           Data.GraphQL.AST    (Name)
+import           Data.GraphQL.Schema (Argument (..), Resolver, Schema,
+                                      Value (..), arrayA', object', objectA',
+                                      scalar, scalarA)
+import           Data.GraphQL.Utils  (getInt, getText, pick, value)
+import           Data.List.NonEmpty  (NonEmpty ((:|)), fromList)
+import           Data.Maybe          (fromMaybe)
+import           Data.Text           (Text)
+import           Database.PSQL.Types (From, HasOtherEnv, HasPSQL, Size, desc)
+import           Haxl.Core           (GenHaxl, throw)
+import           Haxl.Prelude        (NotFound (..), catchAny)
 import           User.API
-import           User.Config             (Cache)
+import           User.Config         (Cache)
 import           User.Types
-import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL)
-import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (desc)
-import           Yuntan.Utils.GraphQL    (getIntValue, getTextValue, pickValue,
-                                          value)
-import           Yuntan.Utils.JSON       (unionValue)
+
+
+instance Alternative (GenHaxl u w) where
+  a <|> b = catchAny a b
+  empty = throw $ NotFound "mzero"
 
 -- type Query {
 --  user(name: String!): User
@@ -101,8 +103,8 @@ user_ :: (HasPSQL u, HasOtherEnv Cache u) => User -> [Resolver (GenHaxl u w)]
 user_ User{..} =
   [ scalar    "id"         getUserID
   , scalar    "name"       getUserName
-  , value     "extra"      $ unionValue getUserSecureExtra getUserExtra
-  , pickValue "pick_extra" $ unionValue getUserSecureExtra getUserExtra
+  , value     "extra"      $ union getUserSecureExtra getUserExtra
+  , pick      "pick_extra" $ union getUserSecureExtra getUserExtra
   , binds     "binds"      getUserID
   , bindCount "bind_count" getUserID
   , service'  "service"    getUserID
@@ -112,14 +114,14 @@ user_ User{..} =
 
 bind_ :: (HasPSQL u, HasOtherEnv Cache u) => Bind -> [Resolver (GenHaxl u w)]
 bind_ Bind{..} =
-  [ scalar    "id"         getBindID
-  , scalar    "user_id"    getBindUid
-  , user__    "user"       getBindUid
-  , scalar    "name"       getBindName
-  , scalar    "service"    getBindService
-  , value     "extra"      getBindExtra
-  , pickValue "pick_extra" getBindExtra
-  , scalar    "created_at" getBindCreatedAt
+  [ scalar "id"         getBindID
+  , scalar "user_id"    getBindUid
+  , user__ "user"       getBindUid
+  , scalar "name"       getBindName
+  , scalar "service"    getBindService
+  , value  "extra"      getBindExtra
+  , pick   "pick_extra" getBindExtra
+  , scalar "created_at" getBindCreatedAt
   ]
 
 user__ :: (HasPSQL u, HasOtherEnv Cache u) => Name -> UserID -> Resolver (GenHaxl u w)
@@ -133,8 +135,8 @@ bind = objectA' "bind" $ \case
 
 paramPage :: [Argument] -> (From, Size)
 paramPage argv = (from , size)
-  where from = fromMaybe 0 $ getIntValue "from" argv
-        size = fromMaybe 10 $ getIntValue "size" argv
+  where from = fromMaybe 0  $ getInt "from" argv
+        size = fromMaybe 10 $ getInt "size" argv
 
 binds :: (HasPSQL u, HasOtherEnv Cache u) => Name -> UserID -> Resolver (GenHaxl u w)
 binds n uid = arrayA' n $ \argv ->
@@ -148,13 +150,13 @@ bindCount n uid = scalarA n $ \case
 
 service :: (HasPSQL u, HasOtherEnv Cache u) => Resolver (GenHaxl u w)
 service = objectA' "service" $ \argv ->
-  case getTextValue "service" argv of
+  case getText "service" argv of
     Just srv -> pure $ service_ srv
     Nothing  -> empty
 
 service' :: (HasPSQL u, HasOtherEnv Cache u) => Name -> UserID -> Resolver (GenHaxl u w)
 service' n uid = objectA' n $ \argv ->
-  case getTextValue "service" argv of
+  case getText "service" argv of
     Just srv -> pure $ service__ uid srv
     Nothing  -> empty
 
@@ -198,7 +200,7 @@ userCount = scalarA "user_count" $ \case
 
 group :: (HasPSQL u, HasOtherEnv Cache u) => Resolver (GenHaxl u w)
 group = objectA' "group" $ \argv ->
-  case getTextValue "group" argv of
+  case getText "group" argv of
     Just srv -> pure $ group_ srv
     Nothing  -> empty
 

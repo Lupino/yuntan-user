@@ -9,16 +9,16 @@ import           Control.Monad                        (when)
 import           Data.Default.Class                   (def)
 import           Data.Streaming.Network.Internal      (HostPreference (Host))
 import           Data.String                          (fromString)
+import           Database.PSQL.Types                  (HasOtherEnv, HasPSQL,
+                                                       simpleEnv)
+import           Haxl.RedisCache                      (initRedisState)
 import           Network.Wai.Handler.Warp             (setHost, setPort)
 import           Network.Wai.Middleware.RequestLogger (logStdout)
 import           System.Exit                          (exitSuccess)
+import           Web.Scotty.Haxl                      (ScottyH)
 import           Web.Scotty.Trans                     (delete, get, middleware,
                                                        post, scottyOptsT,
                                                        settings)
-import           Yuntan.Types.HasPSQL                 (HasOtherEnv, HasPSQL,
-                                                       simpleEnv)
-import           Yuntan.Types.Scotty                  (ScottyH)
-import           Yuntan.Utils.RedisCache              (initRedisState)
 
 import           Haxl.Core                            (GenHaxl, StateStore,
                                                        initEnv, runHaxl,
@@ -87,7 +87,9 @@ program Options { getConfigFile  = confFile
   pool <- C.genPSQLPool psqlConfig
   redis <- C.genRedisConnection redisConfig
 
-  let state = stateSet (initRedisState redisThreads $ fromString prefix)
+  redisState <- initRedisState redisThreads $ fromString prefix
+
+  let state = stateSet redisState
             $ stateSet (initUserState psqlThreads) stateEmpty
 
   let u = simpleEnv pool (fromString prefix) $ mkCache redis

@@ -4,7 +4,7 @@
 
 module User.Config
   (
-    PSQLConfig (..)
+    PSQL (..)
   , Config (..)
   , genPSQLPool
   , genRedisConnection
@@ -14,17 +14,16 @@ module User.Config
   , redisEnv
   ) where
 
-import           Data.Aeson                (FromJSON, parseJSON, withObject,
-                                            (.!=), (.:), (.:?))
-import           Database.Redis            (Connection)
-import           Yuntan.Config.PSQLConfig  (PSQLConfig (..), genPSQLPool)
-import           Yuntan.Config.RedisConfig (RedisConfig (..),
-                                            defaultRedisConfig,
-                                            genRedisConnection)
-import           Yuntan.Types.HasPSQL      (HasOtherEnv, otherEnv)
+import           Data.Aeson           (FromJSON, parseJSON, withObject, (.!=),
+                                       (.:), (.:?))
+import           Database.PSQL.Config (PSQL (..), genPSQLPool)
+import           Database.PSQL.Types  (HasOtherEnv, otherEnv)
+import           Database.Redis       (Connection)
+import           Haxl.RedisConfig     (RedisConfig (..), defaultRedisConfig,
+                                       genRedisConnection)
 
 data Config = Config
-    { psqlConfig  :: PSQLConfig
+    { psqlConfig  :: PSQL
     , redisConfig :: RedisConfig
     }
     deriving (Show)

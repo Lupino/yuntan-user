@@ -18,20 +18,19 @@ module User.Types
   , CreatedAt
   , Bind (..)
   , Extra
-  , TablePrefix
   , OUser
   , toOUser
   , toOUser'
   ) where
 
-import           Data.Aeson           (FromJSON (..), ToJSON (..), Value (..),
-                                       object, withObject, (.:), (.=))
-import           Data.Int             (Int64)
-import           Data.Maybe           (fromMaybe)
-import           Data.Text            (Text)
-import           GHC.Generics         (Generic)
-import           Yuntan.Types.HasPSQL (FromRow (..), field)
-import           Yuntan.Utils.JSON    (unionValue)
+import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
+                                      object, withObject, (.:), (.=))
+import           Data.Aeson.Helper   (union)
+import           Data.Int            (Int64)
+import           Data.Maybe          (fromMaybe)
+import           Data.Text           (Text)
+import           Database.PSQL.Types (FromRow (..), field)
+import           GHC.Generics        (Generic)
 
 type UserID       = Int64
 type BindID       = Int64
@@ -182,7 +181,7 @@ toOUser :: User -> OUser
 toOUser User{..} = OUser
   { getOUserID        = getUserID
   , getOUserName      = getUserName
-  , getOUserExtra     = unionValue getUserSecureExtra getUserExtra
+  , getOUserExtra     = union getUserSecureExtra getUserExtra
   , getOUserBinds     = getUserBinds
   , getOUserGroups    = getUserGroups
   , getOUserCreatedAt = getUserCreatedAt

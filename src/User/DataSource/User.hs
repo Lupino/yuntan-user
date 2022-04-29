@@ -13,22 +13,20 @@ module User.DataSource.User
   , getUserIdList
   ) where
 
-import           Data.Int                (Int64)
+import           Control.Monad.IO.Class (liftIO)
+import           Data.Int               (Int64)
 import           Data.UnixTime
-import           Yuntan.Types.HasPSQL    (Only (..), PSQL, count_, delete,
-                                          insertRet, selectOne, selectOneOnly,
-                                          selectOnly_, update)
-
-import           User.DataSource.Table   (users)
+import           Database.PSQL.Types    (From, Only (..), OrderBy, PSQL, Size,
+                                         count_, delete, insertRet, selectOne,
+                                         selectOneOnly, selectOnly_, update)
+import           User.DataSource.Table  (users)
 import           User.Types
-import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (OrderBy)
 
 createUser :: UserName -> Password -> PSQL UserID
-createUser name passwd prefix conn = do
-  t <- getUnixTime
+createUser name passwd = do
+  t <- liftIO getUnixTime
   insertRet users ["username", "password", "extra", "secure_extra", "created_at"] "id"
-    (name, passwd, "{}" :: String, "{}" :: String, show $ toEpochTime t) 0 prefix conn
+    (name, passwd, "{}" :: String, "{}" :: String, show $ toEpochTime t) 0
 
 getUser :: UserID -> PSQL (Maybe User)
 getUser uid = selectOne users ["*"] "id = ?" (Only uid)

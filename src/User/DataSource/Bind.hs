@@ -15,21 +15,20 @@ module User.DataSource.Bind
   , getBindIdListByService
   ) where
 
-import           Data.Int                (Int64)
+import           Control.Monad.IO.Class (liftIO)
+import           Data.Int               (Int64)
 import           Data.UnixTime
-import           User.DataSource.Table   (binds)
+import           Database.PSQL.Types    (From, Only (..), OrderBy, PSQL, Size,
+                                         count, delete, insertRet, selectOne,
+                                         selectOneOnly, selectOnly, update)
+import           User.DataSource.Table  (binds)
 import           User.Types
-import           Yuntan.Types.HasPSQL    (Only (..), PSQL, count, delete,
-                                          insertRet, selectOne, selectOneOnly,
-                                          selectOnly, update)
-import           Yuntan.Types.ListResult (From, Size)
-import           Yuntan.Types.OrderBy    (OrderBy)
 
 createBind :: UserID -> Service -> ServiceName -> Extra -> PSQL BindID
-createBind uid service name extra prefix conn = do
-  t <- getUnixTime
+createBind uid service name extra = do
+  t <- liftIO getUnixTime
   insertRet binds ["user_id", "service", "name", "extra", "created_at"] "id"
-    (uid, service, name, extra, show $ toEpochTime t) 0 prefix conn
+    (uid, service, name, extra, show $ toEpochTime t) 0
 
 getBind :: BindID -> PSQL (Maybe Bind)
 getBind bid = selectOne binds ["*"] "id = ?" (Only bid)

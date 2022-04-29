@@ -8,11 +8,11 @@ module User.DataSource.Table
   , groupMeta
   ) where
 
-import           Data.Int             (Int64)
-import           Yuntan.Types.HasPSQL (PSQL, TableName, VersionList,
-                                       constraintPrimaryKey, createIndex,
-                                       mergeDatabase)
-import qualified Yuntan.Types.HasPSQL as PSQL (createTable)
+import           Data.Int            (Int64)
+import           Database.PSQL.Types (PSQL, TableName, VersionList,
+                                      constraintPrimaryKey, createIndex,
+                                      createTable, getTablePrefix,
+                                      mergeDatabase)
 
 users :: TableName
 users = "users"
@@ -32,7 +32,7 @@ groupMeta = "group_meta"
 
 createUserTable :: PSQL Int64
 createUserTable =
-  PSQL.createTable users
+  createTable users
     [ "id SERIAL PRIMARY KEY"
     , "username VARCHAR(128) NOT NULL"
     , "password VARCHAR(128) NOT NULL"
@@ -44,7 +44,7 @@ createUserTable =
 
 createBindTable :: PSQL Int64
 createBindTable =
-  PSQL.createTable binds
+  createTable binds
     [ "id SERIAL PRIMARY KEY"
     , "user_id INT NOT NULL"
     , "service VARCHAR(128) NOT NULL"
@@ -55,23 +55,25 @@ createBindTable =
 
 
 createGroupTable :: PSQL Int64
-createGroupTable prefix =
-  PSQL.createTable groups
+createGroupTable = do
+  prefix <- getTablePrefix
+  createTable groups
     [ "user_id INT NOT NULL"
     , "\"group\" VARCHAR(128) NOT NULL"
     , constraintPrimaryKey prefix "group_pk" ["user_id", "\"group\""]
-    ] prefix
+    ]
 
 
 createGroupMetaTable :: PSQL Int64
-createGroupMetaTable prefix =
-  PSQL.createTable groupMeta
+createGroupMetaTable = do
+  prefix <- getTablePrefix
+  createTable groupMeta
     [ "\"group\" VARCHAR(128) NOT NULL"
     , "title VARCHAR(256) NOT NULL"
     , "summary VARCHAR(1500) DEFAULT NULL"
     , "created_at INT NOT NULL"
     , constraintPrimaryKey prefix "group_meta_pk" ["\"group\""]
-    ] prefix
+    ]
 
 
 versionList :: VersionList Int64

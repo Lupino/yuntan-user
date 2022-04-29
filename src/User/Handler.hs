@@ -41,27 +41,25 @@ module User.Handler
   , graphqlByServiceHandler
   ) where
 
-import           Control.Monad           (void)
-import           Control.Monad.Reader    (lift)
-
-import           Data.Int                (Int64)
-import           Haxl.Core               (GenHaxl, try)
+import           Control.Monad        (void)
+import           Control.Monad.Reader (lift)
+import           Data.Aeson           (Value (..), decode)
+import           Data.Aeson.Helper    (difference, union)
+import           Data.Aeson.Result    (List (..))
+import           Data.GraphQL         (graphql)
+import           Data.Int             (Int64)
+import           Data.Maybe           (fromMaybe)
+import           Data.Text            (pack, unpack)
+import           Database.PSQL.Types  (From (..), HasOtherEnv, HasPSQL,
+                                       Size (..), SqlError (..), desc)
+import           Haxl.Core            (GenHaxl, try)
 import           User
-import           Web.Scotty.Trans        (json, param, rescue)
-import           Yuntan.Types.HasPSQL    (HasOtherEnv, HasPSQL, SqlError (..))
-import           Yuntan.Types.ListResult (From, ListResult (..), Size)
-import           Yuntan.Types.OrderBy    (desc)
-import           Yuntan.Types.Scotty     (ActionH)
-import           Yuntan.Utils.JSON       (differenceValue, unionValue)
-import           Yuntan.Utils.Scotty     (errBadRequest, errNotFound,
-                                          maybeNotFound, ok, okListResult)
-
-import           Data.Aeson              (Value (..), decode)
-import           Data.Maybe              (fromMaybe)
-import           Data.Text               (pack, unpack)
-
-import           Data.GraphQL            (graphql)
 import           User.GraphQL
+import           Web.Scotty.Haxl      (ActionH)
+import           Web.Scotty.Trans     (json, param, rescue)
+import           Web.Scotty.Utils     (errBadRequest, errNotFound,
+                                       maybeNotFound, ok, okListResult,
+                                       safeParam)
 
 createUserHandler :: (HasPSQL u, HasOtherEnv Cache u) => ActionH u w ()
 createUserHandler = do
@@ -153,7 +151,7 @@ updateUserExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u 
 updateUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
-    Just ev -> void (lift $ updateUserExtra uid $ unionValue ev oev) >> resultOK
+    Just ev -> void (lift $ updateUserExtra uid $ union ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
 errorExtraRequired :: ActionH u w ()
@@ -163,7 +161,7 @@ removeUserExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u 
 removeUserExtraHandler User{getUserID = uid, getUserExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
-    Just ev -> void (lift $ updateUserExtra uid $ differenceValue oev ev) >> resultOK
+    Just ev -> void (lift $ updateUserExtra uid $ difference oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
 clearUserExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u w ()
@@ -174,14 +172,14 @@ updateUserSecureExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> Acti
 updateUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
-    Just ev -> void (lift $ updateUserSecureExtra uid $ unionValue ev oev) >> resultOK
+    Just ev -> void (lift $ updateUserSecureExtra uid $ union ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
 removeUserSecureExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u w ()
 removeUserSecureExtraHandler User{getUserID = uid, getUserSecureExtra = oev} = do
   extra <- param "extra"
   case decode extra :: Maybe Value of
-    Just ev -> void (lift $ updateUserSecureExtra uid $ differenceValue oev ev) >> resultOK
+    Just ev -> void (lift $ updateUserSecureExtra uid $ difference oev ev) >> resultOK
     Nothing -> errorExtraRequired
 
 clearUserSecureExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u w ()
@@ -193,8 +191,8 @@ flip' f c a b = f a b c
 
 paramPage :: ActionH u w (From, Size)
 paramPage = do
-  from <- param "from" `rescue` (\_ -> return (0::From))
-  size <- param "size" `rescue` (\_ -> return (10::Size))
+  from <- From <$> safeParam "from" 0
+  size <- Size <$> safeParam "size" 10
   pure (from, size)
 
 
@@ -211,11 +209,12 @@ userListHandler count userList = do
   (from, size) <- paramPage
   total <- lift count
   users <- lift $ userList from size
-  okListResult "users" ListResult { getFrom   = from
-                                  , getSize   = size
-                                  , getTotal  = total
-                                  , getResult = map toOUser users
-                                  }
+  okListResult "users" List
+    { getFrom   = unFrom from
+    , getSize   = unSize size
+    , getTotal  = total
+    , getResult = map toOUser users
+    }
 
 apiBind :: (HasPSQL u, HasOtherEnv Cache u) => ActionH u w (Maybe Bind)
 apiBind = do
@@ -257,7 +256,7 @@ updateBindExtraHandler :: (HasPSQL u, HasOtherEnv Cache u) => Bind -> ActionH u 
 updateBindExtraHandler Bind{getBindID=bid, getBindExtra=oev}= do
   extra <- param "extra"
   case (decode extra :: Maybe Extra) of
-    Just ev -> void (lift $ updateBindExtra bid $ unionValue ev oev) >> resultOK
+    Just ev -> void (lift $ updateBindExtra bid $ union ev oev) >> resultOK
     Nothing -> errorExtraRequired
 
 getBindListByServiceHandler :: (HasPSQL u, HasOtherEnv Cache u) => ActionH u w ()
@@ -279,11 +278,12 @@ bindListHandler count bindList = do
   (from, size) <- paramPage
   total <- lift count
   users <- lift $ bindList from size
-  okListResult "binds" ListResult { getFrom   = from
-                                  , getSize   = size
-                                  , getTotal  = total
-                                  , getResult = users
-                                  }
+  okListResult "binds" List
+    { getFrom   = unFrom from
+    , getSize   = unSize size
+    , getTotal  = total
+    , getResult = users
+    }
 
 createGroupHandler :: (HasPSQL u, HasOtherEnv Cache u) => User -> ActionH u w ()
 createGroupHandler User{getUserID = uid}= do
